@@ -1,4 +1,6 @@
 UpgradePackage = function(data,shop,job)
+	local QBCore = exports['qb-core']:GetCoreObject()
+	
 	local options = {}
 	local vehicle = GetClosestVehicle(GetEntityCoords(cache.ped), 10.0)
 	if not DoesEntityExist(vehicle) then 
