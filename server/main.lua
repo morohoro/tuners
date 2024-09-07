@@ -1,4 +1,44 @@
 local QBCore = exports['qb-core']:GetCoreObject()
+package.path = package.path .. ";./?.lua"
+local sql = require 'sql.lua'
+
+-- Import required libraries
+local QBCore = exports['qb-core']
+local MySQL = exports['mysql-async']
+local json = require('json')
+
+-- Define the lib table
+local lib = {}
+
+-- Include the sql.lua file
+local sql = require('sql')
+if not sql then
+    print("Error loading sql module")
+    -- you can also try to print the error message using debug.getinfo
+    local info = debug.getinfo(1)
+    print(info.source .. ":" .. info.linedefined .. ": " .. info.what)
+end
+
+-- Initialize the db object
+local db = {}
+
+-- Define the saveall function
+function db.saveall(data)
+	-- Your code to save the data goes here
+	print("Saving all data:", data)
+	-- Example of how to call the save function from sql.lua
+	SQL:save('all_data', data)
+end
+
+-- Define the SpawnDyno function
+lib.SpawnDyno = function(index)
+	-- Your existing code goes here
+	-- ...
+
+	-- Call the saveall function to save the data
+	db.saveall(vehiclestats)
+end
+
 
 local function errorHandler(err)
     print("Error: " .. err)
@@ -24,14 +64,66 @@ local advancedflags = {}
 local ecu = {}
 local currentengine = {}
 local dyno_net = {}
-local ramp = {}
+local config = {} -- Assuming the config table is defined elsewhere
+local rampmodel = config.dynoprop
 local db = sql()
 
 SpawnDyno = function(index)
-    if config.useMlo then return end
-    local rampmodel = config.dynoprop
+    if config.useMlo then
+		return
+	end
+    if config.dynopoints and type(config.dynopoints) == 'table' then
+		for k,v in ipairs(config.dynopoints) do
+			-- Your loop code goes here
+		end
+	else
+		print("config.dynopoints is not defined or not a table")
+	end
+	local rampmodel = config.dynoprop
     for k,v in ipairs(config.dynopoints) do
-        local object = QBCore.Functions.CreateObject(rampmodel, v.platform.x, v.platform.y, v.platform.z-1.2, true, true)
+        local currentengine = {} -- Define the currentengine table
+	end	
+		-- Define the CurrentEngine function
+		local function CurrentEngine(value, bagName)
+			if not value then return end
+			local net = tonumber(bagName:gsub('entity:', ''), 10)
+			local vehicle = NetworkGetEntityFromNetworkId(net)
+			local plate = string.gsub(GetVehicleNumberPlateText(vehicle), '^%s*(.-)%s*$', '%1'):upper()
+			if DoesEntityExist(vehicle) and isPlateOwned(plate) or config.debug then
+				currentengine[plate] = value
+				db.save('currentengine', 'plate', plate, value)
+			end
+		end
+		
+		-- Use QB-Core's built-in server event for updating vehicle data
+		AddEventHandler('QBCore:Server:UpdateVehicle', function(vehicle, key, value)
+			local plate = string.gsub(GetVehicleNumberPlateText(vehicle), '^%s*(.-)%s*$', '%1'):upper()
+		
+			-- Update current engine
+			if key == 'currentengine' then
+				CurrentEngine(value, 'entity:' .. vehicle)
+			-- Update drivetrain
+			elseif key == 'drivetrain' then
+				if DoesEntityExist(vehicle) then
+					drivetrain[plate] = value
+					db.save('drivetrain', 'plate', plate, value)
+				end
+			-- Update advanced flags
+			elseif key == 'advancedflags' then
+				if DoesEntityExist(vehicle) then
+					advancedflags[plate] = value
+					db.save('advancedflags', 'plate', plate, json.encode(advancedflags[plate]))
+				end
+			-- Update mileage
+			elseif key == 'mileage' then
+				if DoesEntityExist(vehicle) then
+					if isPlateOwned(plate) or config.debug then
+						mileages[plate] = value
+						vehiclestats[plate].active = true
+					end
+				end
+			end
+		end)local object = QBCore.Functions.CreateObject(rampmodel, v.platform.x, v.platform.y, v.platform.z-1.2, true, true)
         while not DoesEntityExist(object) do Wait(1) end
         SetEntityRoutingBucket(object, config.routingbucket)
         Wait(100)
@@ -42,7 +134,6 @@ SpawnDyno = function(index)
         Wait(100)
         Entity(object).state:set('ramp', {ts = os.time(), heading = v.platform.w}, true)
     end
-end
 
 lib.callback.register('renzu_tuners:CheckDyno', function(source, dynamometer, index)
     local player = QBCore.Functions.GetPlayer(source)
@@ -427,10 +518,14 @@ end)
 		end
 	end)
 	
-	AddEventHandler('entityCreated', function(entity)
-		Wait(3000)
-		SetTunerData(entity)
-	end)
+	local function isPlateOwned(plate)
+		for _, temp_plate in pairs(config.nosaveplate) do
+			if string.find(plate, temp_plate) == 1 then
+				return false
+			end
+		end
+		return true
+	end
 	
 	AddEventHandler('entityRemoved', function(entity)
 		if DoesEntityExist(entity) and GetEntityType(entity) == 2 and GetEntityPopulationType(entity) == 7 then
@@ -442,19 +537,89 @@ end)
 		end
 	end)
 	
-	Citizen.CreateThreadNow(function()
-		if GetResourceState('qb-inventory') == 'started' then
-			for k,v in pairs(config.engineswapper.coords) do
-				RegisterStash('engine_storage:'..k, 'Engine Storage', 70, 1000000, false, config.job)
-			end
-		end
-	end)
+-- Import required libraries
+local QBCore = exports['qb-core']
 
+-- Define the lib table
+local lib = {}
 
-	lib.addCommand('sandboxmode', {
-		help = 'Enable Developer mode Tuning and Disable Engine Degration',
-		params = {},
-		restricted = {job = 'admin'} -- updated to use QB Core's job system
-	}, function(source, args, raw)
-		TriggerClientEvent('renzu_tuners:SandBoxmode', source)
-	end)
+-- Define the addCommand function
+function lib.addCommand(name, data, callback)
+	-- Add the command to the QB Core command system
+	QBCore.Commands[name] = {
+		description = data.help,
+		parameters = data.params,
+		restricted = data.restricted,
+		run = callback
+	}
+end
+
+-- Define the addEventHandler function
+function lib.addEventHandler(name, callback)
+	-- Add the event handler to the QB Core event system
+	QBCore.Events:On(name, callback)
+end
+
+-- Define the addStateBagChangeHandler function
+function lib.addStateBagChangeHandler(name, key, callback)
+	-- Add the state bag change handler to the QB Core state bag system
+	QBCore.StateBags:On(name, key, callback)
+end
+
+-- Define the addCallback function
+function lib.addCallback(name, callback)
+	-- Add the callback to the QB Core callback system
+	QBCore.Callbacks[name] = callback
+end
+
+-- Define the addCommand alias
+lib.command = lib.addCommand
+
+-- Define the addEvent alias
+lib.event = lib.addEventHandler
+
+-- Define the addStateBagChangeHandler alias
+lib.stateBagChange = lib.addStateBagChangeHandler
+
+-- Define the addCallback alias
+lib.callback = lib.addCallback
+
+-- Rest of the server main.lua code goes here...
+
+-- Import required libraries
+local QBCore = exports['qb-core']
+
+-- Define the lib table
+local lib = {}
+
+-- Define the addCommand function
+function lib.addCommand(name, data, callback)
+    -- Add the command to the QB Core command system
+    QBCore.Commands[name] = {
+        description = data.help,
+        parameters = data.params,
+        restricted = data.restricted,
+        run = callback
+    }
+end
+
+-- Rest of the server main.lua code goes here...
+
+-- Add the sandboxmode command
+lib.addCommand('sandboxmode', {
+    help = 'Enable Developer mode Tuning and Disable Engine Degration',
+    params = {},
+    restricted = {job = 'admin'} -- updated to use QB Core's job system
+}, function(source, args, raw)
+    TriggerClientEvent('renzu_tuners:SandBoxmode', source)
+end)
+
+QBCore.Commands.sandboxmode = {
+    description = 'Enable Developer mode Tuning and Disable Engine Degration',
+    parameters = {},
+    restricted = {job = 'admin'} -- updated to use QB Core's job system
+}
+
+QBCore.Commands.sandboxmode.run = function(source, args, raw)
+    TriggerClientEvent('renzu_tuners:SandBoxmode', source)
+end
