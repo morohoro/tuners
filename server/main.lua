@@ -1,6 +1,6 @@
 local QBCore = exports['qb-core']:GetCoreObject()
+
 local oxmysql = exports['oxmysql']
-local MySQL = exports['mysql-async']
 local json = require('json')
 
 -- Define the lib table
@@ -9,14 +9,6 @@ local lib = {}
 -- Define the db object
 local db = oxmysql
 
--- Include the sql.lua file using a relative path
-local sql = require('./server/sql')
-if not sql then
-    print("Error loading sql module")
-    local info = debug.getinfo(1)
-    print(info.source .. ":" .. info.linedefined .. ": " .. info.what)
-    print(debug.traceback())
-end
 
 -- Initialize the db object
 local db = {}
@@ -26,7 +18,7 @@ function db.saveall(data)
 	-- Your code to save the data goes here
 	print("Saving all data:", data)
 	-- Example of how to call the save function from sql.lua
-	SQL:save('all_data', data)
+	oxmysql:execute("INSERT INTO all_data (data) VALUES (?)", {data})
 end
 
 -- Define the SpawnDyno function
@@ -73,7 +65,7 @@ SpawnDyno = function(index)
 	end
     if config.dynopoints and type(config.dynopoints) == 'table' then
 		for k,v in ipairs(config.dynopoints) do
-			-- Your loop code goes here
+			
 		end
 	else
 		print("config.dynopoints is not defined or not a table")
@@ -134,15 +126,25 @@ SpawnDyno = function(index)
         Entity(object).state:set('ramp', {ts = os.time(), heading = v.platform.w}, true)
     end
 
-lib.callback.register('renzu_tuners:CheckDyno', function(source, dynamometer, index)
+	if lib.callback then
+		lib.callback.register('renzu_tuners:CheckDyno', function(source, dynamometer, index)
+			
+		end)
+	else
+		print('lib.callback is nil')
+	end
+	print(lib.callback) -- Add this line before line 128
+	lib.callback.register('renzu_tuners:CheckDyno', function(source, dynamometer, index)
+		
+	end)
     local player = QBCore.Functions.GetPlayer(source)
     local dyno = not config.useMlo and NetworkGetEntityFromNetworkId(dyno_net[index])
     if not config.useMlo and not DoesEntityExist(dyno) or not config.useMlo and not dynamometer then
         SpawnDyno(index)
         return true
     end
-    return true
-end)
+    do return true end
+
 
 AddEventHandler('onResourceStop', function(res)
 	if res == GetCurrentResourceName() then

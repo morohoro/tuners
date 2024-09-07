@@ -1,0 +1,24 @@
+-- Create table query
+CREATE TABLE IF NOT EXISTS renzu_tuner (
+  id INT NOT NULL AUTO_INCREMENT KEY,
+  plate VARCHAR(60) DEFAULT NULL,
+  mileages INT DEFAULT 0,
+  vehiclestats LONGTEXT DEFAULT NULL,
+  defaulthandling LONGTEXT DEFAULT NULL,
+  vehicleupgrades LONGTEXT DEFAULT NULL,
+  vehicletires LONGTEXT DEFAULT NULL,
+  drivetrain VARCHAR(60) DEFAULT NULL,
+  advancedflags LONGTEXT DEFAULT NULL,
+  ecu LONGTEXT DEFAULT NULL,
+  nodegrade INT DEFAULT 0,
+  currentengine VARCHAR(60) DEFAULT NULL
+);
+
+-- Insert query
+INSERT INTO renzu_tuner (column, plate) VALUES (?, ?);
+
+-- Update query
+UPDATE renzu_tuner SET column = ? WHERE where = ?;
+
+-- Select query
+SELECT * FROM renzu_tuner WHERE plate = ?;
