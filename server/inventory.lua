@@ -1,4 +1,5 @@
--- here you can port other inventory functions
+local QBCore = exports['qb-core']:GetCoreObject()
+
 if config.sandboxmode then return end
 QbCore, ESX = nil, nil
 if GetResourceState('qb-core') == 'started' then
@@ -25,25 +26,16 @@ GetInventoryItems = function(src, method, items, metadata)
 	elseif QbCore then
 		local Player = GetPlayerFromId(src)
 		local data = {}
-        for _, item in pairs(Player?.PlayerData?.items or {}) do
+		for _, item in pairs((Player and Player.PlayerData and Player.PlayerData.items) or {}) do
 			if items == item.name then
 				item.metadata = item.info
-				if item?.metadata?.quality then
+				if item.metadata and item.metadata.quality then
 					item.metadata.durability = item.metadata.quality
 				end
 				table.insert(data,item)
 			end
-        end
-        return data
-	elseif ESX then
-		local Player = GetPlayerFromId(src)
-		local data = {}
-        for _, item in pairs(Player?.inventory or {}) do
-			if items == item.name then
-				table.insert(data,item)
-			end
-        end
-        return data
+		end
+		return data
 	end
 end
 
@@ -111,12 +103,7 @@ end
 
 -- register ESX & QBcore Items if ox_inventory is missing
 
-RegisterUsableItem = {}
-if ESX then
-	RegisterUsableItem = ESX.RegisterUsableItem
-elseif QbCore then
-	RegisterUsableItem = QbCore.Functions.CreateUseableItem
-end
+RegisterUsableItem = QbCore.Functions.CreateUseableItem
 
 if GetResourceState('ox_inventory') ~= 'started' then
 	local register = function(source, item)
@@ -142,5 +129,4 @@ if GetResourceState('ox_inventory') ~= 'started' then
 		RegisterUsableItem(v.item, register)
 	end
 	RegisterUsableItem('repairparts', register)
-
 end
