@@ -1,22 +1,21 @@
 local QBCore = exports['qb-core']:GetCoreObject()
-package.path = package.path .. ";./?.lua"
-local sql = require 'sql.lua'
-
--- Import required libraries
-local QBCore = exports['qb-core']
+local oxmysql = exports['oxmysql']
 local MySQL = exports['mysql-async']
 local json = require('json')
 
 -- Define the lib table
 local lib = {}
 
--- Include the sql.lua file
-local sql = require('sql')
+-- Define the db object
+local db = oxmysql
+
+-- Include the sql.lua file using a relative path
+local sql = require('./server/sql')
 if not sql then
     print("Error loading sql module")
-    -- you can also try to print the error message using debug.getinfo
     local info = debug.getinfo(1)
     print(info.source .. ":" .. info.linedefined .. ": " .. info.what)
+    print(debug.traceback())
 end
 
 -- Initialize the db object
