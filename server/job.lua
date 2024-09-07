@@ -1,4 +1,4 @@
--- this functions for Job Society/Management
+local QBCore = exports['qb-core']:GetCoreObject()
 
 GetJobMoney = function(job)
     local value = 0
