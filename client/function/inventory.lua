@@ -1,33 +1,20 @@
+local QBCore = exports['qb-core']:GetCoreObject()
+
 GetInventoryItems = function(items)
     if GetResourceState('ox_inventory') == 'started' then
         return exports.ox_inventory:Search('slots', items)
     elseif GetResourceState('qb-core') == 'started' then
         local data = {}
         local itemdata = {}
-        for _, item in pairs(PlayerData.items) do
+        local playerData = QBCore.Functions.GetPlayerData()
+        for _, item in pairs(playerData.items) do
             for k,v in pairs(items) do
                 if v == item.name then
                     item.count = item.amount
                     if not itemdata[item.name] then 
                         itemdata[item.name] = item 
                     else
-                        itemdata[item.name].count += item.amount
-                    end
-                    table.insert(data,itemdata)
-                end
-            end
-        end
-        return data
-    elseif GetResourceState('es_extended') == 'started' then
-        local data = {}
-        local itemdata = {}
-        for _, item in pairs(PlayerData.inventory) do
-            for k,v in pairs(items) do
-                if v == item.name then
-                    if not itemdata[item.name] then 
-                        itemdata[item.name] = item 
-                    else
-                        itemdata[item.name].count += item.count
+                        local count = itemdata[item.name].count
                     end
                     table.insert(data,itemdata)
                 end

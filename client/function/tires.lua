@@ -1,6 +1,7 @@
+local tiresave = 0
 GetWheelHandling = function(vehicle)
 	local handling = {}
-	local ent = Entity(vehicle).state
+	local ent = QBCore.Functions.GetVehicle
 	local label = {
 		[1] = 'Front Left',
 		[2] = 'Rear Left',
@@ -11,7 +12,7 @@ GetWheelHandling = function(vehicle)
 
 	}
 	for i = 1 , GetVehicleNumberOfWheels(vehicle) do
-		handling[i] = {label = label[i], health = ent.tires?.tirehealth[i] or 100.0}
+		handling[i] = {label = label[i], health = ent.tires and ent.tires.tirehealth[i] or 100.0}
 	end
 	return handling
 end
@@ -31,10 +32,10 @@ HandleTires = function(vehicle,plate,default,state)
 	else
 		local tiresdata = vehicletires or {}
 		if tiresdata[plate] and tiresdata[plate].tirehealth then
-			ent:set('tires',tiresdata[plate],false)
+			QBCore.Functions.SetVehicleProperty('tires',tiresdata[plate],false)
 		else
 			local tirehealth = {}
-			local ent = Entity(vehicle).state
+			local ent = QBCore.Functions.GetVehicle
 			for i = 1 , GetVehicleNumberOfWheels(vehicle) do
 				tirehealth[i] = 100.0
 			end
@@ -42,28 +43,24 @@ HandleTires = function(vehicle,plate,default,state)
 				type = 'default',
 				tirehealth = tirehealth
 			}
-			ent:set('tires',tiresdata,false)
+			QBCore.Functions.SetVehicleProperty('tires',tiresdata,false)
 			tires = {type = 'default'}
 			Wait(1000)
 		end
 	end
-	local tirehealth = vehicletires[plate] and vehicletires[plate].tirehealth or ent.tires?.tirehealth
+	local tirehealth = vehicletires[plate] and vehicletires[plate].tirehealth or ent.tires and ent.tires.tirehealth
 	local total = 0
 	local wheels = 0
 	for i = 1 , GetVehicleNumberOfWheels(vehicle) do
 		if tirehealth and math.random(1,100) < 50 then
-			tirehealth[i] -= tires?.degrade or 0.1
+			tirehealth[i] = tirehealth[i] - (tires and tires.degrade or 0.1)
 		end
-		if tirehealth then
-		    total += tirehealth[i]
-		end
-		wheels += 1
+		total = total + tirehealth[i]
 	end
 	gtirehealth = tirehealth
-	tiresave += 1
 	if tiresave > 60 then
 		tiresave = 0
-		ent:set('tires', {type = tires.type, tirehealth = gtirehealth}, true)
+		QBCore.Functions.SetVehicleProperty('tires', {type = tires.type, tirehealth = gtirehealth}, true)
 	end
 	local current_tires = ent.tires and ent.tires.type and ent.tires.tirehealth
 	if current_tires ~= nil and tires.handling and total > 0 and default and tires.type ~= 'drift_tires' then

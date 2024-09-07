@@ -57,7 +57,7 @@ SetupDynoPoints = function(data,index)
 		dyno_markers[index] = CreateCheckpoint(5, data.coord.x, data.coord.y, data.coord.z-1.0, 0, 0, 0, 2.0, 255, 2, 21, 244, 0)
 		SetCheckpointScale(dyno_markers[index], 0.4)
 		SetCheckpointCylinderHeight(dyno_markers[index], 0.0, 0.0, 4.0)
-		local rampmodel = `prop_spray_jackframe`
+		local rampmodel = "prop_spray_jackframe"
 		lib.requestModel(rampmodel)
 	end
 	
