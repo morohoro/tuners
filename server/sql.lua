@@ -1,4 +1,3 @@
-
 -- local vehiclestats = {}
 
 if config.sandboxmode then return end
