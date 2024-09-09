@@ -1,7 +1,8 @@
-# renzu_tuners
+WIP
+# tuners
 Fivem Advanced Vehicle System. Including Mileages , Degrations ,Multiple Engine Parts Variation like Racing Pistons , Tuning and more.
 
-![image](https://user-images.githubusercontent.com/82306584/221592284-7bbf65f2-0e71-4158-a819-5e3277c255f6.png)
+
 
 # Feature
 - Multiple Engine Parts Upgrades. ex. Pistons, Camshaft.
@@ -63,11 +64,10 @@ Fivem Advanced Vehicle System. Including Mileages , Degrations ,Multiple Engine 
 
 # Dependency
 - ox_lib v3
-- ox_inventory
-- (ESX or qbcore)
+
 
 # Inventory Support
-- right now only ox_inventory/qb-inventory is supported
+- right now only qb-inventory is supported
 - Inventory porting is easy look for inventory.lua
 
 # WIP TASKs
@@ -84,18 +84,7 @@ Fivem Advanced Vehicle System. Including Mileages , Degrations ,Multiple Engine 
 PS: Thank to MIST and his friend the modeler for providing a dynamometer model.
 ```
 
-# Image Upgrade Menu
-![image](https://user-images.githubusercontent.com/82306584/221533270-32ac81e9-159e-4eb9-a828-bec35a7233d7.png)
-![image](https://user-images.githubusercontent.com/82306584/221533339-ea994f3d-c622-487d-ab86-3cb42ab5cc99.png)
-![image](https://user-images.githubusercontent.com/82306584/221533421-75aac0b2-f5fd-4feb-92f8-dc49a7d9f9d9.png)
-![image](https://user-images.githubusercontent.com/82306584/221533746-d51f34a3-f29c-4bcd-9a0d-472d9ec2ecf6.png)
-![image](https://user-images.githubusercontent.com/82306584/221533792-2879da01-9607-4fae-bbd9-59b3c129b1c2.png)
-![image](https://user-images.githubusercontent.com/82306584/221533993-f60ca10d-228d-409d-aa30-6fa503803406.png)
-![image](https://user-images.githubusercontent.com/82306584/221534071-428bd778-989a-4666-8ec2-b3dbfa687872.png)
-![image](https://user-images.githubusercontent.com/82306584/221534172-bcc4c7f8-49a5-4cb0-9207-6bdd8fdb0ede.png)
-![image](https://user-images.githubusercontent.com/82306584/221534760-eb443728-2b71-421e-b931-d430d350e1c1.png)
-![image](https://user-images.githubusercontent.com/82306584/221534798-5f74cc68-29cd-4930-96e3-6abb43a388a0.png)
-![image](https://user-images.githubusercontent.com/82306584/222137773-fd684f4f-6447-4a9a-ae6f-d44b38f05838.png)
+
 
 
 
