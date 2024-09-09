@@ -1,4 +1,4 @@
-local QBCore = exports['qb-core']:GetCoreObject()
+
 AddStateBagChangeHandler('advancedflags' --[[key filter]], nil --[[bag filter]], function(bagName, key, value, _unused, replicated)
 	Wait(0)
 	if not value then return end

@@ -1,6 +1,4 @@
 UpgradePackage = function(data,shop,job)
-	local QBCore = exports['qb-core']:GetCoreObject()
-	
 	local options = {}
 	local vehicle = GetClosestVehicle(GetEntityCoords(cache.ped), 10.0)
 	if not DoesEntityExist(vehicle) then 
@@ -26,7 +24,7 @@ UpgradePackage = function(data,shop,job)
 	}, function(selected, scrollIndex, args)
 		for k,v in pairs(config.engineupgrades) do
 			if v.category == args:lower() then
-				local hasitem = QBCore.Functions.TriggerCallback('renzu_tuners:checkitem',false,v.item)
+				local hasitem = lib.callback.await('renzu_tuners:checkitem',false,v.item)
 				if config.freeupgrade or hasitem then
 					ItemFunction(vehicle,{
 						name = v.item,
@@ -155,7 +153,7 @@ Options = function(data,shop,job)
 		end
 	end
 	if hasmenu then
-		local jobmoney = QBCore.Functions.TriggerCallback('renzu_tuners:getJobMoney', false, PlayerData.job.name)
+		local jobmoney = lib.callback.await('renzu_tuners:getJobMoney',false,PlayerData?.job?.name)
 		lib.registerMenu({
 			id = 'upgrade_options',
 			title = config.purchasableUpgrade and config.jobmanagemoney and 'Job Money: '..jobmoney or 'Parts Options',
@@ -167,7 +165,7 @@ Options = function(data,shop,job)
 			onCheck = function(selected, checked, args)
 				lib.hideMenu()
 				local item = selected == 2 and data.upgrade or data.part or args
-				local hasitem = QBCore.Functions.TriggerCallback('renzu_tuners:checkitem',false,item)
+				local hasitem = lib.callback.await('renzu_tuners:checkitem',false,item)
 				if config.freeupgrade or hasitem then
 					ItemFunction(vehicle,{
 						name = item,
@@ -191,7 +189,7 @@ Options = function(data,shop,job)
 			end
 			if type(args) == 'table' and args.tune then
 				if args.profile == 'new' then
-					local hasturbo = QBCore.Functions.GetVehicle.turbo
+					local hasturbo = Entity(vehicle).state.turbo
 					local options = {
 						{ type = "input", label = "Profile Name", placeholder = "ex. My Drag Tune" },
 						{ type = "slider", label = "Ignition Timing", min = -0.5, max = 1.5 , step = 0.001, default = 1.0},
@@ -232,21 +230,19 @@ Options = function(data,shop,job)
 							description = 'Tune hasbeen applied and saved to '..input[1]..' Profile',   
 							type = 'success'
 						})
-						QBCore.Functions.TriggerCallback('renzu_tuners:Tune',false,{vehicle = NetworkGetNetworkIdFromEntity(vehicle) ,profile = input[1], tune = {acceleration = input[2], topspeed = input[5], engineresponse = input[3], gear_response = input[4], boostpergear = boostpergear, gear_ratio = gear_ratio}})
+						lib.callback.await('renzu_tuners:Tune',false,{vehicle = NetworkGetNetworkIdFromEntity(vehicle) ,profile = input[1], tune = {acceleration = input[2], topspeed = input[5], engineresponse = input[3], gear_response = input[4], boostpergear = boostpergear, gear_ratio = gear_ratio}})
 						Wait(200)
-						HandleEngineDegration = function(vehicle, state, plate)
-    local ent = QBCore.Functions.GetVehicle(vehicle).state end
-  HandleEngineDegration(vehicle,QBCore.Functions.GetVehicle,plate)
+						HandleEngineDegration(vehicle,Entity(vehicle).state,plate)
 						local plate = string.gsub(GetVehicleNumberPlateText(GetVehiclePedIsIn(cache.ped)), '^%s*(.-)%s*$', '%1'):upper()
-						vehiclestats, vehicletires, mileages, ecu = QBCore.Functions.TriggerCallback('renzu_tuners:vehiclestats', 0, plate)
-						else
+						vehiclestats, vehicletires, mileages, ecu = lib.callback.await('renzu_tuners:vehiclestats', 0, plate)
+					else
 						lib.notify({
 							description = 'Tune is not saved',   
 							type = 'error'
 						})
 					end
 				else
-					local hasturbo = QBCore.Functions.GetVehicle.turbo
+					local hasturbo = Entity(vehicle).state.turbo
 					local options = {
 						{ type = "slider", label = "Ignition Timing", min = -0.5, max = 1.5 , step = 0.001, default = args.data['acceleration']},
 						{ type = "slider", label = "Fuel Table", min = -0.5, max = 1.5 , step = 0.001, default = args.data['engineresponse']},
@@ -287,13 +283,11 @@ Options = function(data,shop,job)
 							description = 'Tune has been applied and saved to '..args.profile..' Profile',   
 							type = 'success'
 						})
-						QBCore.Functions.TriggerCallback('renzu_tuners:Tune',false,{vehicle = NetworkGetNetworkIdFromEntity(vehicle) ,profile = args.profile, tune = {acceleration = input[1], topspeed = input[4], engineresponse = input[2], gear_response = input[3], boostpergear = boostpergear, gear_ratio = gear_ratio}})
+						lib.callback.await('renzu_tuners:Tune',false,{vehicle = NetworkGetNetworkIdFromEntity(vehicle) ,profile = args.profile, tune = {acceleration = input[1], topspeed = input[4], engineresponse = input[2], gear_response = input[3], boostpergear = boostpergear, gear_ratio = gear_ratio}})
 						Wait(200)
-						HandleEngineDegration = function(vehicle, state, plate)
-    local ent = QBCore.Functions.GetVehicle(vehicle).state
-(vehicle,QBCore.Functions.GetVehicle,plate) end
+						HandleEngineDegration(vehicle,Entity(vehicle).state,plate)
 						local plate = string.gsub(GetVehicleNumberPlateText(GetVehiclePedIsIn(cache.ped)), '^%s*(.-)%s*$', '%1'):upper()
-						vehiclestats, vehicletires, mileages, ecu = QBCore.Functions.TriggerCallback('renzu_tuners:vehiclestats', 0, plate)
+						vehiclestats, vehicletires, mileages, ecu = lib.callback.await('renzu_tuners:vehiclestats', 0, plate)
 					else
 						lib.notify({
 							description = 'Tune is not saved',   
@@ -306,7 +300,7 @@ Options = function(data,shop,job)
 				local hasitem = false
 				if name == 'repairparts' then
 					local percent = {}
-					local ent = QBCore.Functions.GetVehicle
+					local ent = Entity(vehicle).state
 					local ismetadataSupport = ESX and GetResourceState('ox_inventory') == 'started' or QBCore or false
 					if name == 'repairparts' and ismetadataSupport then
 						percent = lib.inputDialog('Repair Engine Parts', {
@@ -317,7 +311,7 @@ Options = function(data,shop,job)
 					local state = args.state or args.part
 					local oldvalue = state and ent[state] or 50
 					local percent = percent[1] or 100
-					local success = QBCore.Functions.TriggerCallback('renzu_tuners:RepairPart',false,percent,ismetadataSupport == false)
+					local success = lib.callback.await('renzu_tuners:RepairPart',false,percent,ismetadataSupport == false)
 					if success == 'item' then return lib.notify({description = 'Failed to repair.  \n  You dont have a repair item', type = 'error'}) end
 					if success then
 						lib.progressCircle({
@@ -337,16 +331,16 @@ Options = function(data,shop,job)
 						local durability = success or 0
 						lib.notify({description = 'Repair Success.  \n  Repair kit Durability is '..durability, type = 'success'})
 						local newvalue = (oldvalue + percent)
-						QBCore.Functions.SetVehicleProperty(state,newvalue <= 100 and newvalue or 100,true)
+						ent:set(state,newvalue <= 100 and newvalue or 100,true)
 						return CheckVehicle(HasAccess() or type,shop)
 					else
 						return lib.notify({description = 'Failed to repair.  \n  the current repair parts cannot repair this percentage', type = 'error'})
 					end
 				else
-					hasitem = QBCore.Functions.TriggerCallback('renzu_tuners:checkitem',false,item)
+					hasitem = lib.callback.await('renzu_tuners:checkitem',false,item)
 				end
 				if config.freeupgrade or hasitem then
-					QBCore.Functions.GetVehicle:set(data.upgrade or '',false,true)
+					Entity(vehicle).state:set(data.upgrade or '',false,true)
 					ItemFunction(vehicle,{
 						name = item,
 						label = data.label,
@@ -383,55 +377,42 @@ CheckVehicle = function(menu,shop)
 		})
 		return 
 	end
-	local ent = QBCore.Functions.GetVehicle
+	local ent = Entity(vehicle).state
 	while not ent.vehicle_loaded do Wait(11) end
 	local plate = string.gsub(GetVehicleNumberPlateText(vehicle), '^%s*(.-)%s*$', '%1'):upper()
 	local default_perf = GetEnginePerformance(vehicle,plate)
 	HandleTires(vehicle,plate,default_perf,ent)
 	local options = {}
 	if not ent.mileage then
-		QBCore.Functions.SetVehicleProperty('mileage',0, true)
+		ent:set('mileage',0, true)
 	end
-	table.insert(options,{icon = 'road', label = 'Mileage', description = ' Current Mileage of the vehicle engine', progress = 100 - (ent.mileage / 10000) * 100, colorScheme = 'blue',  args = {part = ent['racing_oil'] and 'racing_oil' or 'engine_oil', upgrade =  'racing_oil', mileage = QBCore.Functions.GetVehicle.mileage, label = 'Mileage'}})
+	table.insert(options,{icon = 'road', label = 'Mileage', description = ' Current Mileage of the vehicle engine', progress = 100 - (ent.mileage / 10000) * 100, colorScheme = 'blue',  args = {part = ent['racing_oil'] and 'racing_oil' or 'engine_oil', upgrade =  'racing_oil', mileage = Entity(vehicle).state.mileage, label = 'Mileage'}})
 	local vehiclestat = vehiclestats[plate] or ent or {}
 	if not DoesEntityExist(vehicle) then return end
 	local unique = {}
 	local upgrades = {}
-	local imagepath = "qb-inventory/html/images/"
-local image_url = imagepath .. "image.png"
-print(image_url)  -- prints "qb-inventory/html/images/image.png"
-local racing = {}
-for k, v in pairs(racing) do
-    print("Racing upgrade: " .. v)
-end
-for k, v in pairs(config.engineupgrades) do
-    if string.find(v.item, 'racing') then
-        racing[v.state] = v.item
-    end
-    if ent[v.item] and not unique[v.state] then
-        unique[v.state] = true
-        upgrades[v.item] = true
-        if upgrades[v.item] then
-            local parts = upgrades_data[v.item].label
-            local durability = ent[v.state] or 100
-            table.insert(options, {icon = "qb-inventory/html/images/" .. '' .. v.state .. '.png', label = parts, description = parts .. ' Durability: ' .. durability, progress = durability, colorScheme = 'blue', args = {installed = v.item, state = v.state, label = v.label}})
-        end
-    end
-end
-    local imagepath = "qb-inventory/html/images/"
-    for k,v in pairs(config.engineparts) do
-        print("v.item:", v.item)
-        print("ent:", ent)
-        print("vehiclestat[v.item]:", vehiclestat[v.item])
-        if not unique[v.item] then
-            if not ent[v.item] then
-                QBCore.Functions.SetVehicleProperty(v.item, tonumber(vehiclestat[v.item]) or 100, true)
-            end
-            local durability = ent[v.item] or 100
-print("Durability:", durability)
-        end
-    end
-end
+	local racing = {}
+	for k,v in pairs(config.engineupgrades) do
+		if string.find(v.item,'racing') then
+			racing[v.state] = v.item
+		end
+		if ent[v.item] and not unique[v.state] then
+			unique[v.state] = true
+			upgrades[v.item] = true
+			local parts = upgrades_data[v.item].label
+			local durability = ent[v.state] or 100
+			table.insert(options,{icon = imagepath..''..v.state..'.png' , label = parts, description = parts..' Durability: '..durability, progress = durability, colorScheme = 'blue', args = {installed = v.item, state = v.state, label = v.label}})
+		end
+	end
+	for k,v in pairs(config.engineparts) do
+		if not unique[v.item] then
+			if not ent[v.item] then
+				ent:set(v.item, tonumber(vehiclestat[v.item]) or 100, true)
+			end
+			local durability = ent[v.item] or 100
+			table.insert(options,{icon = imagepath..''..v.item..'.png' , label = v.label, description = v.label..' Durability: '..durability..'%', progress = durability, colorScheme = 'blue', args = {installed = v.item, state = v.item, label = v.label}})
+		end
+	end
 	if menu then
 		local drivetrain = 	ent.drivetrain or GetVehicleHandlingFloat(vehicle , "CHandlingData", "fDriveBiasFront")
 		local drivetraintype = nil
@@ -443,7 +424,7 @@ end
 			drivetraintype = 'AWD'
 		end
 
-		local tiretype = ent.tires and ent.tires.type or 'Default'
+		local tiretype = ent.tires and ent.tires?.type or 'Default'
 		if GetResourceState('renzu_turbo') == 'started' then
 			local turbo = ent['turbo'] and ent['turbo'].turbo or 'Not Installed'
 			table.insert(options,{icon = imagepath..'turbostreet.png' ,  label = 'Forced Induction ('..turbo..')', description = ' Installed Custom Turbine', progress = ent['turbo'] and ent['turbo'].durability or 100, colorScheme = 'blue',  args = {turbo = true, label = 'Forced Induction', value = {'turbostreet','turbosports','turboracing','turboultimate'}}})
@@ -451,7 +432,7 @@ end
 		if GetResourceState('renzu_nitro') == 'started' then
 			table.insert(options,{icon = imagepath..'nitro50shot.png' , label = 'Nitros Oxide System', description = ' Installed Nitros', colorScheme = 'black',  args = {nitro = true, label = 'Nitro', value = {'nitro50shot','nitro100shot','nitro200shot'}}})
 		end
-		table.insert(options,{icon = imagepath..'street_tires.png' , label = 'Tires '..tiretype, description = ' Current Tires Health of the vehicle', progress = ent.tires.tirehealth[1] or 100, colorScheme = 'blue',  args = {tires = true, label = 'Tires', type = tiretype}})
+		table.insert(options,{icon = imagepath..'street_tires.png' , label = 'Tires '..tiretype, description = ' Current Tires Health of the vehicle', progress = ent?.tires?.tirehealth[1] or 100, colorScheme = 'blue',  args = {tires = true, label = 'Tires', type = tiretype}})
 		table.insert(options,{icon = imagepath..'oem_gearbox.png' , label = 'Drivetrain Type '..drivetraintype, description = ' Change Wheel Type', colorScheme = 'black',  args = {drivetrain = true, label = 'Drivetrain Type', type = drivetraintype}})
 		table.insert(options,{icon = imagepath..'kers.png' , label = 'Advanced', description = ' Advanced Modification', colorScheme = 'black',  args = {extras = true, label = 'Advanced Modification', value = ent.extras}})
 		if GetResourceState('renzu_engine') == 'started' then
@@ -476,7 +457,7 @@ end
 		Options(args,shop,menu)
 	end)
 	lib.showMenu('checkvehicle')
-
+end
 
 CheckPerformance = function()
     local vehicle = GetClosestVehicle(GetEntityCoords(cache.ped), 10.0)
@@ -487,14 +468,11 @@ CheckPerformance = function()
 		})
 		return 
 	end
-	local ent = QBCore.Functions.GetVehicle
+	local ent = Entity(vehicle).state
 	while not ent.vehicle_loaded do Wait(11) end
 	local options = {}
 	local plate = string.gsub(GetVehicleNumberPlateText(vehicle), '^%s*(.-)%s*$', '%1'):upper()
 	local default_perf = GetEnginePerformance(vehicle,plate)
-	HandleEngineDegration = function(vehicle, state, plate)
-		local ent = QBCore.Functions.GetVehicle(vehicle).state
-	end
 	HandleEngineDegration(vehicle,ent,plate)
 	local unique = {}
 	for k,v in pairs(GetAvailableHandlings()) do
@@ -525,7 +503,7 @@ TuningMenu = function()
 		return 
 	end
 	local default = GetDefaultHandling(vehicle)
-	local ent = QBCore.Functions.GetVehicle
+	local ent = Entity(vehicle).state
 	local options = {}
 	local plate = string.gsub(GetVehicleNumberPlateText(vehicle), '^%s*(.-)%s*$', '%1'):upper()
 	local activeprofile = ecu[plate] and ecu[plate].active
@@ -536,9 +514,7 @@ TuningMenu = function()
 		}) 
 		return 
 	end
-	HandleEngineDegration = function(vehicle, state, plate)
-    local ent = QBCore.Functions.GetVehicle(vehicle).state
-end
+	HandleEngineDegration(vehicle,ent,plate)
 	for k,v in ipairs(config.tuningmenu) do
 		table.insert(options, {icon = v.icon , label = v.label, description = v.description, args = {handling = v.handlingname, label = v.label, type = v.type, min = v.min, max = v.max, attributes = v.attributes}})
 	end
@@ -606,7 +582,7 @@ end
 				table.insert(options, { type = v.type, label = v.label, description = v.description, default = HandlingGetter(v.type,args.handling,v.label)})
 			end
 		end
-		local profile = activeprofile and activeprofile.profile or 'SANDBOX MODE'
+		local profile = activeprofile?.profile or 'SANDBOX MODE'
 		local input = lib.inputDialog('Profile Name: '..profile, options)
 		if not input then return end
 		--json.encode(input or {}, {indent = true})
@@ -631,7 +607,7 @@ end
 			activeprofile.suspension = suspension
 		end
 		if not config.sandboxmode then
-			QBCore.Functions.TriggerCallback('renzu_tuners:Tune',false,{vehicle = NetworkGetNetworkIdFromEntity(vehicle) ,profile = activeprofile.profile, tune = activeprofile})
+			lib.callback.await('renzu_tuners:Tune',false,{vehicle = NetworkGetNetworkIdFromEntity(vehicle) ,profile = activeprofile.profile, tune = activeprofile})
 		else
 			for k,v in ipairs(args.attributes) do
 				if v.type == 'number' then
@@ -662,7 +638,7 @@ CheckWheels = function()
 		})
 		return 
 	end
-	local ent = QBCore.Functions.GetVehicle
+	local ent = Entity(vehicle).state
 	while not ent.vehicle_loaded do Wait(11) end
 	local options = {}
 	local plate = string.gsub(GetVehicleNumberPlateText(vehicle), '^%s*(.-)%s*$', '%1'):upper()
@@ -671,7 +647,7 @@ CheckWheels = function()
 	for k,v in pairs(GetWheelHandling(vehicle)) do
 		table.insert(options, {icon = '' , label = v.label, description = 'current health of '..v.label, progress = v.health or 100, colorScheme = 'blue'})
 	end
-	local wheeltype = ent.tires and ent.tires.type or 'Default OEM'
+	local wheeltype = ent.tires?.type or 'Default OEM'
 	lib.registerMenu({
 		id = 'wheelstatus',
 		title = 'Wheel Status ('..wheeltype..')',
@@ -692,11 +668,11 @@ ContextMenuOptions = function(stash,entity,vehicle)
 	end
 	TaskTurnPedToFaceEntity(cache.ped,vehicle,5000)
 	SetEntityNoCollisionEntity(entity,vehicle,true,false)
-	local ent = QBCore.Functions.GetVehicle
-	local items = QBCore.Functions.TriggerCallback('renzu_tuners:GetEngineStorage',false,stash)
+	local ent = Entity(vehicle).state
+	local items = lib.callback.await('renzu_tuners:GetEngineStorage',false,stash)
 	local options = {}
 	for k,v in pairs(items) do
-		local name = v.metadata and v.metadata.label or 'Engine'
+		local name = v.metadata?.label or 'Engine'
 		local engine = v.metadata.engine
 		local metadata = {}
 		for k,v in pairs(v.metadata) do
@@ -711,23 +687,23 @@ ContextMenuOptions = function(stash,entity,vehicle)
 			metadata = metadata,
 			arrow = true,
 			onSelect = function()
-				RetrieveOldEngine(vehicle, engine)
-TaskTurnPedToFaceEntity(cache.ped, vehicle, 5000)
-Wait(2000)
-FreezeEntityPosition(cache.ped, true)
-local d21 = GetModelDimensions(GetEntityModel(vehicle))
-local stand = GetOffsetFromEntityInWorldCoords(vehicle, 0.0, d21.y + 0.2, 0.0)
-local z = 1.45
-lib.requestModel("prop_car_engine_01")
-enginemodel = CreateObject("prop_car_engine_01", stand.x + 0.27, stand.y - 0.2, stand.z + z, true, true, true)
-while not DoesEntityExist(enginemodel) do Wait(1) end
-SetEntityCompletelyDisableCollision(enginemodel, true, false)
-AttachEntityToEntity(enginemodel, vehicle, 0, 0.0, -1.25, z, 0.0, 90.0, 0.0, true, false, false, false, 70, true)
-while z > 0.2 and DoesEntityExist(enginemodel) do
-    Wait(1)
-    z = z + (-0.003)
-    AttachEntityToEntity(enginemodel, vehicle, 0, 0.0, -1.25, z, 0.0, 90.0, 0.0, true, false, false, false, 70, true)
-end
+				RetrieveOldEngine(vehicle,engine)
+				TaskTurnPedToFaceEntity(cache.ped,vehicle,5000)
+				Wait(2000)
+				FreezeEntityPosition(cache.ped,true)
+				local d21 = GetModelDimensions(GetEntityModel(entity))
+				local stand = GetOffsetFromEntityInWorldCoords(entity, 0.0,d21.y+0.2,0.0)
+				local z = 1.45
+				lib.requestModel(`prop_car_engine_01`)
+				enginemodel = CreateObject(`prop_car_engine_01`,stand.x+0.27,stand.y-0.2,stand.z+z,true,true,true)
+				while not DoesEntityExist(enginemodel) do Wait(1) end
+				SetEntityCompletelyDisableCollision(enginemodel,true,false)
+				AttachEntityToEntity(enginemodel,entity ,0,0.0,-1.25,z,0.0,90.0,0.0,true,false,false,false,70,true)
+				while z > 0.2 and DoesEntityExist(enginemodel) do
+					Wait(1)
+					z -= 0.003
+					AttachEntityToEntity(enginemodel,entity ,0,0.0,-1.25,z,0.0,90.0,0.0,true,false,false,false,70,true)
+				end
 				lib.progressBar({
 					duration = 8000,
 					label = 'Installing Engine',
@@ -747,11 +723,11 @@ end
 					if type(v) == 'table' then
 						local state = GetItemState(v.part)
 						RemoveDuplicatePart(vehicle,state)
-						QBCore.Functions.SetVehicleProperty(v.part,true,true)
-						QBCore.Functions.SetVehicleProperty(state,v.durability,true)
+						ent:set(v.part,true,true)
+						ent:set(state,v.durability,true)
 					end
 				end
-				QBCore.Functions.TriggerCallback('renzu_tuners:RemoveEngineStorage',false,{stash = stash, name = v.name, slot = v.slot, metadata = v.metadata})
+				lib.callback.await('renzu_tuners:RemoveEngineStorage',false,{stash = stash, name = v.name, slot = v.slot, metadata = v.metadata})
 				FreezeEntityPosition(cache.ped,false)
 				lib.notify({type = 'success', description = 'Engine has been installed'})
 			end
@@ -800,13 +776,13 @@ CraftOption = function(items,craft,label)
 				for item,data in pairs(items) do
 					for k,v in pairs(data) do
 						if not itemmulti[v.name] then itemmulti[v.name] = 0 end
-if config.metadata and v.metadata and v.metadata.upgrade == metadata[v.name] then
-  itemmulti[v.name] = itemmulti[v.name] + v.count
-  slots[v.name] = v
-elseif not config.metadata and not metadata[v.name] then
-  itemmulti[v.name] = itemmulti[v.name] + v.count
-  slots[v.name] = v
-end
+						if config.metadata and v.metadata?.upgrade == metadata[v.name] then
+							itemmulti[v.name] += v.count
+							slots[v.name] = v
+						elseif not config.metadata and not metadata[v.name] then
+							itemmulti[v.name] += v.count
+							slots[v.name] = v
+						end
 					end
 				end
 				for name,amount in pairs(requiredata) do
@@ -829,7 +805,7 @@ end
 							clip = 'fixing_a_player'
 						}
 					})
-					local success = QBCore.Functions.TriggerCallback('renzu_tuners:Craft',false,slots,requiredata,item,craft == 'engine' and item)
+					local success = lib.callback.await('renzu_tuners:Craft',false,slots,requiredata,item,craft == 'engine' and item)
 					if success then
 						lib.notify({type = 'success', description = item.name.. ' Has been craft successfully'})
 					else

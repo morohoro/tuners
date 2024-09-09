@@ -120,7 +120,7 @@ Targets = function()
 						for k2,v in pairs(v.categories) do
 							table.insert(options,{
 								title = v.label,
-								--icon = k == 'engine' and 'nui://qb-inventory/web/images/engine.png' or 'nui://ox_inventory/web/images/'..v.name..'.png',
+								--icon = k == 'engine' and 'nui://ox_inventory/web/images/engine.png' or 'nui://ox_inventory/web/images/'..v.name..'.png',
 								description = 'Craft '..v.label,
 								arrow = true,
 								onSelect = function()

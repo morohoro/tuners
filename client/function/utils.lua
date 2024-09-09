@@ -17,6 +17,7 @@ SaveStateFlags = function(vehicle,state,data) -- handle Advanced Flags Handling
 	end
 	for k,v in pairs(value) do
 		if not DoesVehicleFlagsExist(v,flags) then
+			vehicleflags += (1 << v)
 			local add = state.advancedflags
 			add[name] = {installed = GetInstalledFlags(to16Bit(vehicleflags)), flags = vehicleflags}
 			state:set('advancedflags',add,true)
@@ -61,17 +62,18 @@ SetVehicleDriveTrain = function(vehicle,value)
 end
 
 LoadVehicleSetup = function(value,ent,stats)
-    plate = string.gsub(GetVehicleNumberPlateText(value), '^%s*(.-)%s*$', '%1'):upper()
-    Citizen.CreateThreadNow(function()
-        GetDefaultHandling(value,plate)
-        Wait(100)
-        HandleEngineDegration = function(vehicle, state, plate)
-            local newEnt, newPlate = ent, plate
-            local ent = QBCore.Functions.GetVehicle(vehicle).state
-            -- Use ent and plate here, or assign them to something
-            local result = {ent, plate}
-        end
-    end)
+	plate = string.gsub(GetVehicleNumberPlateText(value), '^%s*(.-)%s*$', '%1'):upper()
+	Citizen.CreateThreadNow(function()
+		GetDefaultHandling(value,plate)
+		Wait(100)
+		HandleEngineDegration(value,ent,plate)
+		for k,v in ipairs(config.engineparts) do
+			if not ent[v.item] and stats then
+				Wait(100)
+				ent:set(v.item, tonumber(stats[v.item]) or 100, false)
+			end
+		end
+	end)
 end
 
 function round(x)
@@ -141,8 +143,8 @@ function angle(veh)
 	return math.deg(math.acos(cosX))*0.5, modV
 end
 
-nextgearhash = "SET_VEHICLE_NEXT_GEAR"
-setcurrentgearhash = "SET_VEHICLE_CURRENT_GEAR"
+nextgearhash = `SET_VEHICLE_NEXT_GEAR`
+setcurrentgearhash = `SET_VEHICLE_CURRENT_GEAR`
 function SetVehicleNextGear(veh, gear)
     Citizen.InvokeNative(nextgearhash & 0xFFFFFFFF, veh, gear)
 end
@@ -179,7 +181,7 @@ GetVehicleServerStates = function(plate) -- fetch only the current vehicle data
 	local vehicle = GetVehiclePedIsIn(cache.ped)
 	if not DoesEntityExist(vehicle) then return end
 	local plate = string.gsub(GetVehicleNumberPlateText(GetVehiclePedIsIn(cache.ped)), '^%s*(.-)%s*$', '%1'):upper()
-	vehiclestats, vehicletires, mileages, ecu = QBCore.Functions.TriggerCallback('renzu_tuners:vehiclestats', 0, plate) -- temporary work around to bypass statebag size limits.
+	vehiclestats, vehicletires, mileages, ecu = lib.callback.await('renzu_tuners:vehiclestats', 0, plate) -- temporary work around to bypass statebag size limits.
 	return true
 end
 
@@ -211,10 +213,10 @@ GetAfr = function(afr,turbopower,rpm)
 end
 
 RemoveDuplicatePart = function(vehicle,state)
-	local ent = QBCore.Functions.GetVehicle
+	local ent = Entity(vehicle).state
 	for k,v in pairs(config.engineupgrades) do
 		if ent[v.item] and v.state == state then
-			QBCore.Functions.SetVehicleProperty(v.item,false,true)
+			ent:set(v.item,false,true)
 		end
 	end
 end
@@ -222,42 +224,42 @@ end
 local hashandling = false
 
 Sandbox = function(vehicle)
-local	invehicle = vehicle
+	invehicle = vehicle
 	if vehicle then GetDefaultHandling(vehicle) end
 	while invehicle do
-	local	fInitialDriveForce = GetVehicleHandlingFloat(vehicle,'CHandlingData', 'fInitialDriveForce')
-	local	fDriveInertia = GetVehicleHandlingFloat(vehicle,'CHandlingData', 'fDriveInertia')
-	local	fInitialDriveMaxFlatVel = GetVehicleHandlingFloat(vehicle,'CHandlingData', 'fInitialDriveMaxFlatVel')
-	local	fClutchChangeRateScaleUpShift = GetVehicleHandlingFloat(vehicle,'CHandlingData', 'fClutchChangeRateScaleUpShift')
-	local	fClutchChangeRateScaleDownShift = GetVehicleHandlingFloat(vehicle,'CHandlingData', 'fClutchChangeRateScaleDownShift')
-	local	fLowSpeedTractionLossMult = GetVehicleHandlingFloat(vehicle,'CHandlingData', 'fLowSpeedTractionLossMult')
-	local	fTractionLossMult = GetVehicleHandlingFloat(vehicle,'CHandlingData', 'fTractionLossMult')
-	local	fTractionCurveMin = GetVehicleHandlingFloat(vehicle,'CHandlingData', 'fTractionCurveMin')
-	local	fTractionCurveMax = GetVehicleHandlingFloat(vehicle,'CHandlingData', 'fTractionCurveMax')
-	local	fTractionCurveLateral = GetVehicleHandlingFloat(vehicle,'CHandlingData', 'fTractionCurveLateral')
-	local	fBrakeForce = GetVehicleHandlingFloat(vehicle,'CHandlingData', 'fBrakeForce')
-	local	fHandBrakeForce = GetVehicleHandlingFloat(vehicle,'CHandlingData', 'fHandBrakeForce')
-	local	fSuspensionForce = GetVehicleHandlingFloat(vehicle,'CHandlingData', 'fSuspensionForce')
-	local	fSuspensionCompDamp = GetVehicleHandlingFloat(vehicle,'CHandlingData', 'fSuspensionCompDamp')
-	local	fSuspensionReboundDamp = GetVehicleHandlingFloat(vehicle,'CHandlingData', 'fSuspensionReboundDamp')
-	local	fSuspensionUpperLimit = GetVehicleHandlingFloat(vehicle,'CHandlingData', 'fSuspensionUpperLimit')
-	local	fSuspensionLowerLimit = GetVehicleHandlingFloat(vehicle,'CHandlingData', 'fSuspensionLowerLimit')
-	local	fSuspensionRaise = GetVehicleHandlingFloat(vehicle,'CHandlingData', 'fSuspensionRaise')
-	local	fSuspensionBiasFront = GetVehicleHandlingFloat(vehicle,'CHandlingData', 'fSuspensionBiasFront')
-	local	fAntiRollBarForce = GetVehicleHandlingFloat(vehicle,'CHandlingData', 'fAntiRollBarForce')
-	local	fAntiRollBarBiasFront = GetVehicleHandlingFloat(vehicle,'CHandlingData', 'fAntiRollBarBiasFront')
-	local	fRollCentreHeightFront = GetVehicleHandlingFloat(vehicle,'CHandlingData', 'fRollCentreHeightFront')
-	local	fRollCentreHeightRear = GetVehicleHandlingFloat(vehicle,'CHandlingData', 'fRollCentreHeightRear')
-	local	nInitialDriveGears = GetVehicleHandlingInt(vehicle,'CHandlingData', 'nInitialDriveGears')
+		fInitialDriveForce = GetVehicleHandlingFloat(vehicle,'CHandlingData', 'fInitialDriveForce')
+		fDriveInertia = GetVehicleHandlingFloat(vehicle,'CHandlingData', 'fDriveInertia')
+		fInitialDriveMaxFlatVel = GetVehicleHandlingFloat(vehicle,'CHandlingData', 'fInitialDriveMaxFlatVel')
+		fClutchChangeRateScaleUpShift = GetVehicleHandlingFloat(vehicle,'CHandlingData', 'fClutchChangeRateScaleUpShift')
+		fClutchChangeRateScaleDownShift = GetVehicleHandlingFloat(vehicle,'CHandlingData', 'fClutchChangeRateScaleDownShift')
+		fLowSpeedTractionLossMult = GetVehicleHandlingFloat(vehicle,'CHandlingData', 'fLowSpeedTractionLossMult')
+		fTractionLossMult = GetVehicleHandlingFloat(vehicle,'CHandlingData', 'fTractionLossMult')
+		fTractionCurveMin = GetVehicleHandlingFloat(vehicle,'CHandlingData', 'fTractionCurveMin')
+		fTractionCurveMax = GetVehicleHandlingFloat(vehicle,'CHandlingData', 'fTractionCurveMax')
+		fTractionCurveLateral = GetVehicleHandlingFloat(vehicle,'CHandlingData', 'fTractionCurveLateral')
+		fBrakeForce = GetVehicleHandlingFloat(vehicle,'CHandlingData', 'fBrakeForce')
+		fHandBrakeForce = GetVehicleHandlingFloat(vehicle,'CHandlingData', 'fHandBrakeForce')
+		fSuspensionForce = GetVehicleHandlingFloat(vehicle,'CHandlingData', 'fSuspensionForce')
+		fSuspensionCompDamp = GetVehicleHandlingFloat(vehicle,'CHandlingData', 'fSuspensionCompDamp')
+		fSuspensionReboundDamp = GetVehicleHandlingFloat(vehicle,'CHandlingData', 'fSuspensionReboundDamp')
+		fSuspensionUpperLimit = GetVehicleHandlingFloat(vehicle,'CHandlingData', 'fSuspensionUpperLimit')
+		fSuspensionLowerLimit = GetVehicleHandlingFloat(vehicle,'CHandlingData', 'fSuspensionLowerLimit')
+		fSuspensionRaise = GetVehicleHandlingFloat(vehicle,'CHandlingData', 'fSuspensionRaise')
+		fSuspensionBiasFront = GetVehicleHandlingFloat(vehicle,'CHandlingData', 'fSuspensionBiasFront')
+		fAntiRollBarForce = GetVehicleHandlingFloat(vehicle,'CHandlingData', 'fAntiRollBarForce')
+		fAntiRollBarBiasFront = GetVehicleHandlingFloat(vehicle,'CHandlingData', 'fAntiRollBarBiasFront')
+		fRollCentreHeightFront = GetVehicleHandlingFloat(vehicle,'CHandlingData', 'fRollCentreHeightFront')
+		fRollCentreHeightRear = GetVehicleHandlingFloat(vehicle,'CHandlingData', 'fRollCentreHeightRear')
+		nInitialDriveGears = GetVehicleHandlingInt(vehicle,'CHandlingData', 'nInitialDriveGears')
 		Wait(1000)
 	end
 end
 
 GetDefaultHandling = function(vehicle, plate) -- saves default handling of new vehicles
-	local ent = QBCore.Functions.GetVehicle
+	local ent = Entity(vehicle).state
 	local handlings = ent.defaulthandling
 	if not ent.engine then
-		QBCore.Functions.SetVehicleProperty('currentengine','default',false)
+		ent:set('currentengine','default',false)
 	end
 	if not handlings and not ent.engine or not hashandling and not ent.defaulthandling then
 		hashandling = true
@@ -288,7 +290,7 @@ GetDefaultHandling = function(vehicle, plate) -- saves default handling of new v
 			nInitialDriveGears = GetVehicleHandlingInt(vehicle,'CHandlingData', 'nInitialDriveGears'),
 
 		}
-		QBCore.Functions.SetVehicleProperty('defaulthandling', handlings, true)
+		ent:set('defaulthandling', handlings, true)
 		return handlings
 	end
 	return handlings
@@ -298,10 +300,10 @@ GetEnginePerformance = function(vehicle,plate)
 	return GetDefaultHandling(vehicle,plate)
 end
 
-SetDefaultHandling = function(vehicle,handling)end -- setter from other resource ex. renzu_engine
-	local ent = QBCore.Functions.GetVehicle
+SetDefaultHandling = function(vehicle,handling) -- setter from other resource ex. renzu_engine
+	local ent = Entity(vehicle).state
 	if ent.engine then
-		QBCore.Functions.SetVehicleProperty('currentengine',ent.engine,true)
+		ent:set('currentengine',ent.engine,true)
 	end
 	if not handling then hashandling = false return end
 	local plate = string.gsub(GetVehicleNumberPlateText(vehicle), '^%s*(.-)%s*$', '%1'):upper()
@@ -334,15 +336,10 @@ SetDefaultHandling = function(vehicle,handling)end -- setter from other resource
 
 	}
 	local gdefault = ent.defaulthandling
-	QBCore.Functions.SetVehicleProperty('defaulthandling', handlings, true)
+	ent:set('defaulthandling', handlings, true)
 	Wait(1001)
-	HandleEngineDegration = function(vehicle, state, plate)
-		do
-			local ent = QBCore.Functions.GetVehicle(vehicle).state
-		end
-	end
-	
-	HandleEngineDegration(vehicle, ent, plate)
+	HandleEngineDegration(vehicle,ent,plate)
+end
 
 DoesKersExist = function(data) -- check if kinetic is installed in Flags, 3 is the index value of 32 list of gta flags
 	for k,v in pairs(data) do
@@ -412,8 +409,8 @@ DoesVehicleFlagsExist = function(val,vehicleflag)
 	return false
 end
 
-HasAccess = function(PlayerData)
-	local job = PlayerData.job.name
+HasAccess = function()
+	local job = PlayerData?.job?.name
 	if not job then return end
 	local access = config.job[PlayerData.job.name]
 	if not config.job or access and access <= PlayerData.job.grade then
