@@ -63,7 +63,7 @@ Fivem Advanced Vehicle System. Including Mileages , Degrations ,Multiple Engine 
 
 
 # Dependency
-- ox_lib v3
+- ox_lib
 
 
 # Inventory Support
