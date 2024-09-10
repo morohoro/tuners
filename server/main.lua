@@ -353,7 +353,6 @@ end)
 		GlobalState.mileages = mileages
 		db.saveall(datas)
     end
-end)
 
 -- Define the CurrentEngine function
 	local function CurrentEngine(value, bagName)
