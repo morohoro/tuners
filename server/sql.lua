@@ -1,114 +1,150 @@
--- sql.lua
+-- Import required libraries
+local oxmysql = exports.oxmysql
+local promise = require("promise")
 
--- MySQL Connection
-MySQL = {}
+-- Define the MySQL table
+local MySQL = {}
 
-MySQL.ready = false
-
-MySQL.query = function(query, values)
-    local query = MySQL.format(query, values)
-    local callback = promise.new()
-    MySQL.Async.fetchAll(query, function(results)
-        callback(resolve, results)
-    end)
-    return Citizen.Await(callback)
+-- Define the MySQL.scalar function
+function MySQL.scalar(query, values)
+  local formattedQuery = query
+  for k, v in pairs(values) do
+    formattedQuery = formattedQuery:gsub(":" .. k, oxmysql.escape(v))
+  end
+  local results = oxmysql:scalar(formattedQuery)
+  return results
 end
 
-MySQL.scalar = function(query, values)
-    local query = MySQL.format(query, values)
+-- Define the MySQL.query function
+  function MySQL.query(query, values)
+    local formattedQuery = oxmysql.format(query, values)
+    local results = oxmysql:fetch(formattedQuery)
+    return results
+  end
+  
+  -- Define the MySQL.scalar function
+  function MySQL.scalar(query, values)
+    local formattedQuery = oxmysql.format(query, values)
     local callback = promise.new()
-    MySQL.Async.fetchScalar(query, function(result)
-        callback(resolve, result)
+    oxmysql:query(formattedQuery, function(result)
+      if result then
+        callback:resolve(result[1])
+      else
+        callback:reject("Error executing query")
+      end
     end)
     return Citizen.Await(callback)
-end
-
-MySQL.update = function(query, values)
-    local query = MySQL.format(query, values)
+  end
+  
+  -- Define the MySQL.update function
+  function MySQL.update(query, values)
+    local formattedQuery = oxmysql.format(query, values)
     local callback = promise.new()
-    MySQL.Async.execute(query, function(result)
-        callback(resolve, result)
+    oxmysql:query(formattedQuery, function(result)
+      if result then
+        callback:resolve(result.affectedRows)
+      else
+        callback:reject("Error executing query")
+      end
     end)
     return Citizen.Await(callback)
-end
+  end
+  
+  -- Define the MySQL.format function
+  function MySQL.format(query, values)
+    return oxmysql.format(query, values)
+  end
+  
+  -- Define the MySQL.escape function
+  function MySQL.escape(value)
+    return oxmysql.escape(value)
+  end
+  
+  -- Example usage
+  local plate = "ABC123"
+  local query = "SELECT * FROM vehicles WHERE plate = '%s'"
+  local result = MySQL.query(query, { plate })
+  local scalarResult = MySQL.scalar(query, { plate })
+  
+  
 
-MySQL.insert = function(query, values)
-    local query = MySQL.format(query, values)
-    local callback = promise.new()
-    MySQL.Async.execute(query, function(result)
-        callback(resolve, result)
-    end)
-    return Citizen.Await(callback)
-end
+-- Create renzu_tuner table if it doesn't exist
+Citizen.CreateThreadNow(function()
+  result = db.fetchScalar('SELECT 1 FROM renzu_tuner')
+  if result == nil then
+    local query = [[
+      CREATE TABLE IF NOT EXISTS `renzu_tuner` (
+        `id` int NOT NULL AUTO_INCREMENT KEY,
+        `plate` varchar(60) DEFAULT NULL,
+        `mileages` int DEFAULT 0,
+        `vehiclestats` longtext DEFAULT NULL,
+        `defaulthandling` longtext DEFAULT NULL,
+        `vehicleupgrades` longtext DEFAULT NULL,
+        `vehicletires` longtext DEFAULT NULL,
+        `drivetrain` varchar(60) DEFAULT NULL,
+        `advancedflags` longtext DEFAULT NULL,
+        `ecu` longtext DEFAULT NULL,
+        `nodegrade` int DEFAULT 0,
+        `currentengine` varchar(60) DEFAULT NULL,
+        `damage` longtext DEFAULT NULL
+      )
+    ]]
+    db.query(query)
+    print("^2SQL INSTALL SUCCESSFULLY, don't forget to install the items. /install/ folder ^0")
+  end
+  -- Add new columns to existing table
+  MySQL.query('ALTER TABLE `renzu_tuner` ADD COLUMN `advancedflags` longtext DEFAULT NULL')
+  MySQL.query('ALTER TABLE `renzu_tuner` ADD COLUMN `ecu` longtext DEFAULT NULL')
+  MySQL.query('ALTER TABLE `renzu_tuner` ADD COLUMN `drivetrain` varchar(60) DEFAULT NULL')
+  MySQL.query('ALTER TABLE `renzu_tuner` ADD COLUMN `vehicletires` longtext DEFAULT NULL')
+  MySQL.query('ALTER TABLE `renzu_tuner` ADD COLUMN `damage` longtext DEFAULT NULL')
+end)
 
-MySQL.format = function(query, values)
+local oxmysql = exports.oxmysql
+
+function escapeQuery(query, values)
     if values then
         for i, value in ipairs(values) do
-            query = query:gsub('?', MySQL.escape(value))
+            query = query:gsub('?', oxmysql.escape(value))
         end
     end
     return query
 end
 
-MySQL.escape = function(value)
-    if type(value) == 'string' then
-        return "'" .. value .. "'"
-    elseif type(value) == 'number' then
-        return tostring(value)
-    else
-        error('Unsupported type: ' .. type(value))
-    end
+function fetchAll(query, values)
+    query = escapeQuery(query, values)
+    return oxmysql.fetchAll(query)
 end
 
--- Create renzu_tuner table if it doesn't exist
-Citizen.CreateThreadNow(function()
-    local success, result = pcall(MySQL.scalar.await, 'SELECT 1 FROM renzu_tuner')
-    if not success then
-        MySQL.query.await([[CREATE TABLE `renzu_tuner` (
-            `id` int NOT NULL AUTO_INCREMENT KEY,
-            `plate` varchar(60) DEFAULT NULL,
-            `mileages` int DEFAULT 0,
-            `vehiclestats` longtext DEFAULT NULL,
-            `defaulthandling` longtext DEFAULT NULL,
-            `vehicleupgrades` longtext DEFAULT NULL,
-            `vehicletires` longtext DEFAULT NULL,
-            `drivetrain` varchar(60) DEFAULT NULL,
-            `advancedflags` longtext DEFAULT NULL,
-            `ecu` longtext DEFAULT NULL,
-            `nodegrade` int DEFAULT 0,
-            `currentengine` varchar(60) DEFAULT NULL,
-            `damage` longtext DEFAULT NULL
-        )]])
-        print("^2SQL INSTALL SUCCESSFULLY, dont forget to install the items. /install/ folder ^0")
-    end
-    -- Add new columns to existing table
-    pcall(MySQL.query.await, 'ALTER TABLE `renzu_tuner` ADD COLUMN `advancedflags` longtext DEFAULT NULL')
-    pcall(MySQL.query.await, 'ALTER TABLE `renzu_tuner` ADD COLUMN `ecu` longtext DEFAULT NULL')
-    pcall(MySQL.query.await, 'ALTER TABLE `renzu_tuner` ADD COLUMN `drivetrain` varchar(60) DEFAULT NULL')
-    pcall(MySQL.query.await, 'ALTER TABLE `renzu_tuner` ADD COLUMN `vehicletires` longtext DEFAULT NULL')
-    pcall(MySQL.query.await, 'ALTER TABLE `renzu_tuner` ADD COLUMN `damage` longtext DEFAULT NULL')
-end)
-
--- Update vehiclestats column
-self.update = function(column, where, string, data)
-    local str = 'UPDATE %s SET %s = ? WHERE %s = ?'
-    return MySQL.update(str:format('renzu_tuner', column, where), {data, string})
+function fetchScalar(query, values)
+    query = escapeQuery(query, values)
+    return oxmysql.fetchScalar(query)
 end
 
--- Add new query to update current engine data
-self.updateCurrentEngine = function(plate, currentengine)
-    local str = 'UPDATE %s SET %s = ? WHERE %s = ?'
-    return MySQL.update(str:format('renzu_tuner', 'currentengine', 'plate'), {currentengine, plate})
+function fetch(query, values)
+    query = escapeQuery(query, values)
+    return oxmysql.fetch(query)
 end
 
 -- Add new query to update advanced flags data
-self.updateAdvancedFlags = function(plate, advancedflags)
-    local str = 'UPDATE %s SET %s = ? WHERE %s = ?'
-    return MySQL.update(str:format('renzu_tuner', 'advancedflags', 'plate'), {advancedflags, plate})
+function updateAdvancedFlags(plate, advancedflags)
+    local query = 'UPDATE renzu_tuner SET advancedflags = ? WHERE plate = ?'
+    return fetch(query, {advancedflags, plate})
 end
 
 -- Add new query to update ECU data
-self.updateECU = function(plate, ecu)
-    local str = 'UPDATE %s SET %s = ? WHERE %s = ?'
-    return MySQL.update(str:format('renzu_tuner', 'ecu', 'plate'), {ecu, plate})
+function updateECU(plate, ecu)
+    local query = 'UPDATE renzu_tuner SET ecu = ? WHERE plate = ?'
+    return fetch(query, {ecu, plate})
 end
+
+-- Expose the functions
+db = {}
+db.fetchAll = fetchAll
+db.fetchScalar = fetchScalar
+db.fetch = fetch
+db.updateAdvancedFlags = updateAdvancedFlags
+db.updateECU = updateECU
+
+-- Return the MySQL table
+return MySQL
