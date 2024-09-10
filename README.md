@@ -1,7 +1,4 @@
-# renzu_tuners
-Fivem Advanced Vehicle System. Including Mileages , Degrations ,Multiple Engine Parts Variation like Racing Pistons , Tuning and more.
-
-![image](https://user-images.githubusercontent.com/82306584/221592284-7bbf65f2-0e71-4158-a819-5e3277c255f6.png)
+WIP
 
 # Feature
 - Multiple Engine Parts Upgrades. ex. Pistons, Camshaft.
@@ -62,22 +59,13 @@ Fivem Advanced Vehicle System. Including Mileages , Degrations ,Multiple Engine 
 
 
 # Dependency
-- ox_lib v3
-- ox_inventory
-- (ESX or qbcore)
+- ox_lib
+- qbcore)
 
 # Inventory Support
-- right now only ox_inventory/qb-inventory is supported
+- right now only qb-inventory is supported
 - Inventory porting is easy look for inventory.lua
 
-# WIP TASKs
-- ❌ thinking to support qb-menu and standalone notification, callbacks for the sake of people who cant use ox_lib from qbcore.
-- ✔️ Supports Oxlib Radial in some commands.
-- verify if degration is not too slow or too fast.
-- ✔️ more inventory support.
-- Camber Tuning - thinking a more optimise way since CCarhandlingData does not support other logic for Stancer.
-- Create Simple Job Stash.
-- other suggestion from community. (please dont suggest any mechanic job logic)
 
 
 ```
