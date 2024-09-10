@@ -17,7 +17,7 @@ SaveStateFlags = function(vehicle,state,data) -- handle Advanced Flags Handling
 	end
 	for k,v in pairs(value) do
 		if not DoesVehicleFlagsExist(v,flags) then
-			vehicleflags += (1 << v)
+			vehicleflags = vehicleflags + (1 << v)
 			local add = state.advancedflags
 			add[name] = {installed = GetInstalledFlags(to16Bit(vehicleflags)), flags = vehicleflags}
 			state:set('advancedflags',add,true)
@@ -143,8 +143,8 @@ function angle(veh)
 	return math.deg(math.acos(cosX))*0.5, modV
 end
 
-nextgearhash = `SET_VEHICLE_NEXT_GEAR`
-setcurrentgearhash = `SET_VEHICLE_CURRENT_GEAR`
+nextgearhash = "SET_VEHICLE_NEXT_GEAR"
+setcurrentgearhash = "SET_VEHICLE_CURRENT_GEAR"
 function SetVehicleNextGear(veh, gear)
     Citizen.InvokeNative(nextgearhash & 0xFFFFFFFF, veh, gear)
 end
@@ -410,10 +410,11 @@ DoesVehicleFlagsExist = function(val,vehicleflag)
 end
 
 HasAccess = function()
-	local job = PlayerData?.job?.name
+	local job = PlayerData and PlayerData.job and PlayerData.job.name
 	if not job then return end
-	local access = config.job[PlayerData.job.name]
-	if not config.job or access and access <= PlayerData.job.grade then
+	local access = config.job[job]
+	local grade = safeGet(PlayerData, 'job', 'grade')
+	if not config.job or access and access <= grade then
 		return true
 	end
 	return false

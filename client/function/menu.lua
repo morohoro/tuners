@@ -153,7 +153,7 @@ Options = function(data,shop,job)
 		end
 	end
 	if hasmenu then
-		local jobmoney = lib.callback.await('renzu_tuners:getJobMoney',false,PlayerData?.job?.name)
+		local jobmoney = lib.callback.await('renzu_tuners:getJobMoney',false,PlayerData.job.name)
 		lib.registerMenu({
 			id = 'upgrade_options',
 			title = config.purchasableUpgrade and config.jobmanagemoney and 'Job Money: '..jobmoney or 'Parts Options',
@@ -424,7 +424,7 @@ CheckVehicle = function(menu,shop)
 			drivetraintype = 'AWD'
 		end
 
-		local tiretype = ent.tires and ent.tires?.type or 'Default'
+		 tiretype = ent.tires and ent.tires.type or 'Default'
 		if GetResourceState('renzu_turbo') == 'started' then
 			local turbo = ent['turbo'] and ent['turbo'].turbo or 'Not Installed'
 			table.insert(options,{icon = imagepath..'turbostreet.png' ,  label = 'Forced Induction ('..turbo..')', description = ' Installed Custom Turbine', progress = ent['turbo'] and ent['turbo'].durability or 100, colorScheme = 'blue',  args = {turbo = true, label = 'Forced Induction', value = {'turbostreet','turbosports','turboracing','turboultimate'}}})
@@ -432,7 +432,7 @@ CheckVehicle = function(menu,shop)
 		if GetResourceState('renzu_nitro') == 'started' then
 			table.insert(options,{icon = imagepath..'nitro50shot.png' , label = 'Nitros Oxide System', description = ' Installed Nitros', colorScheme = 'black',  args = {nitro = true, label = 'Nitro', value = {'nitro50shot','nitro100shot','nitro200shot'}}})
 		end
-		table.insert(options,{icon = imagepath..'street_tires.png' , label = 'Tires '..tiretype, description = ' Current Tires Health of the vehicle', progress = ent?.tires?.tirehealth[1] or 100, colorScheme = 'blue',  args = {tires = true, label = 'Tires', type = tiretype}})
+		table.insert(options,{icon = imagepath..'street_tires.png' , label = 'Tires '..tiretype, description = ' Current Tires Health of the vehicle', progress = (ent and ent.tires and ent.tires.tirehealth and ent.tires.tirehealth[1]) or 100, colorScheme = 'blue',  args = {tires = true, label = 'Tires', type = tiretype}})
 		table.insert(options,{icon = imagepath..'oem_gearbox.png' , label = 'Drivetrain Type '..drivetraintype, description = ' Change Wheel Type', colorScheme = 'black',  args = {drivetrain = true, label = 'Drivetrain Type', type = drivetraintype}})
 		table.insert(options,{icon = imagepath..'kers.png' , label = 'Advanced', description = ' Advanced Modification', colorScheme = 'black',  args = {extras = true, label = 'Advanced Modification', value = ent.extras}})
 		if GetResourceState('renzu_engine') == 'started' then
@@ -582,7 +582,7 @@ TuningMenu = function()
 				table.insert(options, { type = v.type, label = v.label, description = v.description, default = HandlingGetter(v.type,args.handling,v.label)})
 			end
 		end
-		local profile = activeprofile?.profile or 'SANDBOX MODE'
+		local profile = (activeprofile and activeprofile.profile) or 'SANDBOX MODE'
 		local input = lib.inputDialog('Profile Name: '..profile, options)
 		if not input then return end
 		--json.encode(input or {}, {indent = true})
@@ -647,7 +647,7 @@ CheckWheels = function()
 	for k,v in pairs(GetWheelHandling(vehicle)) do
 		table.insert(options, {icon = '' , label = v.label, description = 'current health of '..v.label, progress = v.health or 100, colorScheme = 'blue'})
 	end
-	local wheeltype = ent.tires?.type or 'Default OEM'
+	local wheeltype = (ent.tires and ent.tires.type) or 'Default OEM'
 	lib.registerMenu({
 		id = 'wheelstatus',
 		title = 'Wheel Status ('..wheeltype..')',
@@ -672,7 +672,7 @@ ContextMenuOptions = function(stash,entity,vehicle)
 	local items = lib.callback.await('renzu_tuners:GetEngineStorage',false,stash)
 	local options = {}
 	for k,v in pairs(items) do
-		local name = v.metadata?.label or 'Engine'
+		local name = type(v.metadata) == 'table' and v.metadata.label or 'Engine'
 		local engine = v.metadata.engine
 		local metadata = {}
 		for k,v in pairs(v.metadata) do
@@ -694,14 +694,16 @@ ContextMenuOptions = function(stash,entity,vehicle)
 				local d21 = GetModelDimensions(GetEntityModel(entity))
 				local stand = GetOffsetFromEntityInWorldCoords(entity, 0.0,d21.y+0.2,0.0)
 				local z = 1.45
-				lib.requestModel(`prop_car_engine_01`)
-				enginemodel = CreateObject(`prop_car_engine_01`,stand.x+0.27,stand.y-0.2,stand.z+z,true,true,true)
+				lib.requestModel("prop_car_engine_01")
+				enginemodel = CreateObject("prop_car_engine_01",stand.x+0.27,stand.y-0.2,stand.z+z,true,true,true)
 				while not DoesEntityExist(enginemodel) do Wait(1) end
 				SetEntityCompletelyDisableCollision(enginemodel,true,false)
 				AttachEntityToEntity(enginemodel,entity ,0,0.0,-1.25,z,0.0,90.0,0.0,true,false,false,false,70,true)
 				while z > 0.2 and DoesEntityExist(enginemodel) do
 					Wait(1)
-					z -= 0.003
+					z = z - 0.003
+					-- or
+					z = z - 3e-3
 					AttachEntityToEntity(enginemodel,entity ,0,0.0,-1.25,z,0.0,90.0,0.0,true,false,false,false,70,true)
 				end
 				lib.progressBar({
@@ -746,11 +748,13 @@ CraftOption = function(items,craft,label)
 	for k2,item in pairs(items) do
 		local materials = {}
 		table.insert(materials,'Requirements: ')
+	end
 		local requires = {}
 		local requiredata = {}
 		local metadata = {}
 		for item,amount in pairs(item.requires) do
 			table.insert(materials,item..' x'..amount)
+		end
 			local state = GetItemState(item)
 			local material = config.metadata and state or item
 			if config.metadata and state ~= item then
@@ -762,34 +766,44 @@ CraftOption = function(items,craft,label)
 		local chance = item.chance or 100
 		table.insert(materials,'Chances: '..chance..'%')
 		table.insert(options,{
-			title = item.label,
-			metadata = materials,
-			icon = craft == 'engine' and imagepath..'engine.png' or imagepath..''..item.name..'.png',
-			description = 'Craft '..item.name,
-			arrow = true,
-			onSelect = function()
+		  title = item.label,
+		  metadata = materials,
+		  icon = craft == 'engine' and imagepath..'engine.png' or imagepath..''..item.name..'.png',
+		  description = 'Craft '..item.name,
+		  arrow = true,
+		  onSelect = function()
+			    
+		  end
+		})
 				local items = GetInventoryItems(requires)
 				local hasitems = true
 				local missingitems = ''
 				local itemmulti = {}
 				local slots = {}
-				for item,data in pairs(items) do
-					for k,v in pairs(data) do
-						if not itemmulti[v.name] then itemmulti[v.name] = 0 end
-						if config.metadata and v.metadata?.upgrade == metadata[v.name] then
-							itemmulti[v.name] += v.count
-							slots[v.name] = v
-						elseif not config.metadata and not metadata[v.name] then
-							itemmulti[v.name] += v.count
+			
+			
+				for _, data in pairs(items) do
+					for _, v in pairs(data) do
+						itemmulti[v.name] = (itemmulti[v.name] or 0) + (isUpgradeEligible(v) and v.count or 0)
+						if (config.metadata and v.metadata and v.metadata.upgrade == metadata[v.name]) or 
+						   (not config.metadata and not metadata[v.name]) then
 							slots[v.name] = v
 						end
 					end
 				end
-				for name,amount in pairs(requiredata) do
-					if itemmulti[name] and itemmulti[name] < amount or not itemmulti[name] then
-						hasitems = false
-						missingitems = metadata[name] or name
-					end
+			
+			
+			-- helper function
+			
+			local function isUpgradeEligible(v)
+				return (config.metadata and v.metadata and v.metadata.upgrade == metadata[v.name]) or 
+					   (not config.metadata and not metadata[v.name])
+			end
+                for name,amount in pairs(requiredata) do
+                    if itemmulti[name] and itemmulti[name] < amount or not itemmulti[name] then
+                        hasitems = false
+                        missingitems = metadata[name] or name
+                    end
 				end
 				if hasitems then
 					lib.progressCircle({
@@ -807,20 +821,18 @@ CraftOption = function(items,craft,label)
 					})
 					local success = lib.callback.await('renzu_tuners:Craft',false,slots,requiredata,item,craft == 'engine' and item)
 					if success then
-						lib.notify({type = 'success', description = item.name.. ' Has been craft successfully'})
+					lib.notify({type = 'success', description = item.name.. ' Has been craft successfully'})
 					else
-						lib.notify({type = 'error', description = 'Crafting Failed'})
+					lib.notify({type = 'error', description = 'Crafting Failed'})
 					end
-				else
+					else
 					lib.notify({type = 'error', description = 'missing items '..missingitems})
-				end
-			end,
-		})
-	end
-	lib.registerContext({
-		id = craft..'_menu',
-		title = label,
-		options = options
-	})
-	lib.showContext(craft..'_menu')
-end
+					end
+					
+			
+				lib.registerContext({
+							id = craft..'_menu',
+							title = label,
+							options = options
+			})
+			lib.showContext(craft..'_menu')

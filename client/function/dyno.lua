@@ -32,6 +32,24 @@ Dyno = function(data, index)
     end
 end
 
+RegisterNUICallback('DynoTest:StartDynoTest', function(data, cb)
+    -- Handle start dyno test event
+    -- You can add your client-side logic here
+    cb('ok')
+end)
+
+RegisterNUICallback('DynoTest:StopDynoTest', function(data, cb)
+    -- Handle stop dyno test event
+    -- You can add your client-side logic here
+    cb('ok')
+end)
+
+RegisterNUICallback('DynoTest:GetDynoResults', function(data, cb)
+    -- Handle get dyno results event
+    -- You can add your client-side logic here
+    cb('ok')
+end)
+
 local DynoTest = {}
 
 DynoTest.StartDynoTest = function(self, vehicle)

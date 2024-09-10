@@ -11,7 +11,7 @@ GetWheelHandling = function(vehicle)
 
 	}
 	for i = 1 , GetVehicleNumberOfWheels(vehicle) do
-		handling[i] = {label = label[i], health = ent.tires?.tirehealth[i] or 100.0}
+		health = (ent.tires and ent.tires.tirehealth and ent.tires.tirehealth[i]) or 100.0
 	end
 	return handling
 end
@@ -47,20 +47,20 @@ HandleTires = function(vehicle,plate,default,state)
 			Wait(1000)
 		end
 	end
-	local tirehealth = vehicletires[plate] and vehicletires[plate].tirehealth or ent.tires?.tirehealth
-	local total = 0
-	local wheels = 0
-	for i = 1 , GetVehicleNumberOfWheels(vehicle) do
-		if tirehealth and math.random(1,100) < 50 then
-			tirehealth[i] -= tires?.degrade or 0.1
+	local tirehealth = vehicletires[plate] and vehicletires[plate].tirehealth or (ent.tires and ent.tires.tirehealth)
+	local degradeValue = tires and tires.degrade or 0.1
+	
+	if tirehealth then
+		local total = 0
+		local wheels = GetVehicleNumberOfWheels(vehicle)
+		for i = 1, wheels do
+			tirehealth[i] = tirehealth[i] - degradeValue
+			total = total + tirehealth[i]
 		end
-		if tirehealth then
-		    total += tirehealth[i]
-		end
-		wheels += 1
+		-- You can use total and wheels here if needed
 	end
 	gtirehealth = tirehealth
-	tiresave += 1
+	tiresave = 1
 	if tiresave > 60 then
 		tiresave = 0
 		ent:set('tires', {type = tires.type, tirehealth = gtirehealth}, true)

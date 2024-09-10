@@ -1,28 +1,30 @@
 EngineEfficiency = function(vehicle,stats,tune,turboTorque)
-	local rpm = GetVehicleCurrentRpm(vehicle)
-	local nitro = Entity(vehicle).state.nitroenable
-	local boost = turboTorque or 1.0
-	if nitro and turboTorque == 1.0 then boost = 1.0 end
-	local ignition_timing = tune.fInitialDriveForce or 1.0
-	local fueltable = tune.fDriveInertia or 1.0
-	local finalstats = {}
-	for k,v in pairs(config.enginestat_default) do
-		finalstats[k] = v
-	end
-	for k,v in pairs(stats) do
-		if k == 'duration' then
-			finalstats['compression'] -= v
-		elseif k == 'fuelpressure' then
-			finalstats[k] += v * rpm
-			boost -= (v * 0.1)
-		elseif k == 'ignition' then
-			finalstats[k] += v * rpm
-		else
-			finalstats[k] += v
-		end
-	end
-	finalstats.ignition *= 1.0 + ((ignition_timing - 1.0) * rpm)
-	finalstats.fuelpressure *= 1.0 + ((fueltable - 1.0) * rpm)
+    local rpm = GetVehicleCurrentRpm(vehicle)
+    local nitro = Entity(vehicle).state.nitroenable
+    local boost = turboTorque or 1.0
+    if nitro and turboTorque == 1.0 then boost = 1.0 end
+    local ignition_timing = tune.fInitialDriveForce or 1.0
+    local fueltable = tune.fDriveInertia or 1.0
+    local finalstats = {}
+    for k,v in pairs(config.enginestat_default) do
+        finalstats[k] = v
+    end
+    for k,v in pairs(stats) do
+        if k == 'duration' then
+            finalstats['compression'] = finalstats['compression'] - v
+        elseif k == 'fuelpressure' then
+            finalstats[k] = finalstats[k] + (v * rpm)
+            boost = boost - (v * 0.1)
+        elseif k == 'ignition' then
+            finalstats[k] = finalstats[k] + (v * rpm)
+        else
+            finalstats[k] = finalstats[k] + v
+        end
+    end
+	finalstats.ignition = finalstats.ignition * (1.0 + (ignition_timing - 1.0) * rpm)
+
+	finalstats.fuelpressure = finalstats.fuelpressure * (1.0 + (fueltable - 1.0) * rpm)
+
 	local fuel = (finalstats.fuelpressure / 100) 
 	local ignition = (finalstats.ignition / 100) 
 	local turbopower = (boost > 1.0 and boost - 1.0 or 1.0)
@@ -45,11 +47,12 @@ HandleEngineDegration = function(vehicle,state,plate)
 	while not statehandling do Wait(100) end
 	local handlings = statehandling
 	local handlings2 = statehandling
-	local turbo = ent.turbo?.turbo
+	local turbo = ent.turbo and ent.turbo
 	local turbodeduct = 1.0
 	if turbo then
 		turbodeduct = turbo == 'Street' and 1.05 or turbo == 'Sports' and 1.15 or turbo == 'Racing' and 1.25 or turbo == 'Ultimate' and 1.3
 	end
+
 	local rpm = 1.0 + (GetVehicleCurrentRpm(vehicle) * 0.2)
 	upgrade, stats = GetEngineUpgrades(vehicle) -- get current upgraded parts
 	tune = RenzuTuners.GetTuningData(plate) -- get current tuned data
@@ -68,7 +71,7 @@ HandleEngineDegration = function(vehicle,state,plate)
 					SetVehicleHighGear(vehicle,maxgears)
 					nInitialDriveGears = maxgears
 				elseif name ~= 'nInitialDriveGears' then
-					handlings[name] -= (handlings2[name] * deduct)
+					handlings[name] = handlings[name] - (handlings2[name] * deduct)
 					local newval = (handlings[name] * (upgrade[name] or 1.0)) * (tune[name] or 1.0) * efficiency
 					local upgradevalue = handlings[name] == 0.0 and (((handlings[name] + 1.0) * (upgrade[name] or 1.0) * (tune[name] or 1.0) - 1.0) * efficiency) or newval
 					if name == 'fInitialDriveMaxFlatVel' then
@@ -94,7 +97,7 @@ HandleEngineDegration = function(vehicle,state,plate)
 	SetVehicleEnginePowerMultiplier(vehicle, 1.0) -- do not remove this, its a trick for flatvel
 	SetVehicleCheatPowerIncrease(vehicle,1.0)
 	HandleTires(vehicle,plate,handlings,ent)
-	localhandling = handlings
+	handling = handlings
 end
 
 GetEngineUpgrades = function(vehicle, name)
@@ -105,9 +108,8 @@ GetEngineUpgrades = function(vehicle, name)
 		for k,name in pairs(v.handling) do
 			if not upgrades[name] then upgrades[name] = 1.0 end
 			if ent[v.item] then
-				for k,v in pairs(v.stat or {}) do
-					if not stats[k] then stats[k] = 0.0 end
-					stats[k] += v
+				for statKey,statValue in pairs(v.stat or {}) do
+					stats[statKey] = (stats[statKey] or 0) + statValue
 				end
 				upgrades[name] = upgrades[name] * (not config.tunableonly[name] and v.add or 1.0)
 			end
@@ -115,6 +117,8 @@ GetEngineUpgrades = function(vehicle, name)
 	end
 	return upgrades,stats
 end
+
+RenzuTuners = RenzuTuners or {}
 
 RenzuTuners.GetTuningData = function(plate)
 	local tunes = ecu
@@ -127,7 +131,7 @@ RenzuTuners.GetTuningData = function(plate)
 
 	}
 	if tunes and tunes[plate] then
-		for k,v in pairs(tunes[plate]?.active or {}) do
+		for k,v in pairs(tunes[plate].active or {}) do
 			if k == 'topspeed' then
 				data['fInitialDriveMaxFlatVel'] = v
 			end

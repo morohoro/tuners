@@ -1,59 +1,42 @@
 GetInventoryItems = function(items)
-    if GetResourceState('ox_inventory') == 'started' then
-        return exports.ox_inventory:Search('slots', items)
-    elseif GetResourceState('qb-core') == 'started' then
+    if GetResourceState('qb-inventory') == 'started' then
         local data = {}
-        local itemdata = {}
-        for _, item in pairs(PlayerData.items) do
+        for _, item in pairs(QB.Inventory.GetPlayerInventory()) do
             for k,v in pairs(items) do
                 if v == item.name then
-                    item.count = item.amount
-                    if not itemdata[item.name] then 
-                        itemdata[item.name] = item 
-                    else
-                        itemdata[item.name].count += item.amount
-                    end
-                    table.insert(data,itemdata)
+                    local itemInfo = { name = item.name, amount = item.amount }
+                    table.insert(data, itemInfo)
                 end
             end
         end
         return data
-    elseif GetResourceState('es_extended') == 'started' then
-        local data = {}
-        local itemdata = {}
-        for _, item in pairs(PlayerData.inventory) do
-            for k,v in pairs(items) do
-                if v == item.name then
-                    if not itemdata[item.name] then 
-                        itemdata[item.name] = item 
-                    else
-                        itemdata[item.name].count += item.count
-                    end
-                    table.insert(data,itemdata)
-                end
-            end
-        end
-        return data
+    else
+        -- You can add other inventory system checks here, or return an error message
+        return nil
     end
 end
 
--- ox item export
+-- qb-inventory item use export
 exports('useItem', function(data, slot)
-    local closestvehicle = GetClosestVehicle(GetEntityCoords(cache.ped), 10.0)
-    if DoesEntityExist(closestvehicle) then
-        exports.ox_inventory:useItem(data, function(data)
-            if data then
-				ItemFunction(closestvehicle,data)
-            end
-        end)
+    if data then
+        local closestvehicle = GetClosestVehicle(GetEntityCoords(cache.ped), 10.0)
+        if DoesEntityExist(closestvehicle) then
+            QB.Inventory.UseItem(data, function(result)
+                if result then
+                    ItemFunction(closestvehicle, data)
+                else
+                    lib.notify({type = 'error', description = 'Failed to use item'})
+                end
+            end)
+        else
+            lib.notify({type = 'error', description = 'There is no vehicle nearby'})
+        end
     else
-        lib.notify({type = 'error', description = 'There is no vehicle nearby'})
+        lib.notify({type = 'error', description = 'Invalid item data'})
     end
 end)
 
--- this export is made for ox_inventory
--- but you can adapt any inventory by triggering this client event from server ex. when item is used
+-- Register client event for qb-inventory
 RegisterNetEvent('useItem', function(...)
     return ItemFunction(...)
 end)
--- TriggerClientEvent('useItem', source, NetworkGetNetworkIdFromEntity(vehicle),{name = 'oem_suspension', label = 'OEM Suspension'})

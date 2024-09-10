@@ -1,59 +1,68 @@
-PlayerData, localhandling, invehicle, gtirehealth, turboconfig, ecu, indyno, efficiency, upgrade, stats, tune, ramp, engineswapper, winches, manual, zoffset, mode, lastdis, boostpergear, handlingcache, fInitialDriveMaxFlatVel, fDriveInertia, fInitialDriveForce, nInitialDriveGears, tiresave, vehiclestats, vehicletires, mileages, imagepath , tuning_inertia = {}, {}, false, nil, nil, {}, false, 1.0, {}, {}, {}, 0, nil, {}, false, 1, 'NORMAL', 0, {}, {}, nil, nil, nil, nil, 0, {}, {}, {}, 'nui://ox_inventory/web/images/', nil
+local PlayerData = {}
+local localhandling = {}
+local invehicle = false
+local gtirehealth = nil
+local turboconfig = nil
+local ecu = {}
+local indyno = false
+local efficiency = 1.0
+local upgrade = {}
+local stats = {}
+local tune = {}
+local ramp = {}
+local engineswapper = {}
+local winches = {}
+local manual = false
+local zoffset = 1
+local mode = 'NORMAL'
+local lastdis = 0
+local boostpergear = {}
+local handlingcache = {}
+local fInitialDriveMaxFlatVel = nil
+local fDriveInertia = nil
+local fInitialDriveForce = nil
+local nInitialDriveGears = nil
+local tiresave = {}
+local vehiclestats = {}
+local vehicletires = {}
+local mileages = {}
+local imagepath = 'nui://qb-inventory/html/images/'
 
-if GetResourceState('es_extended') == 'started' then
-	ESX = exports['es_extended']:getSharedObject()
-	PlayerData = ESX.GetPlayerData()
-	if lib.addRadialItem then
-		SetTimeout(100,function()
-			local access = HasAccess()
-			return access and HasRadialMenu()
-		end)
-	end
+local tuning_inertia = nil
+local vehicle_table = {}
 
-	RegisterNetEvent('esx:playerLoaded', function(xPlayer)
-		PlayerData = xPlayer
-		return HasRadialMenu()
-	end)
-
-	RegisterNetEvent('esx:setJob', function(job)
-		PlayerData.job = job
-		HasRadialMenu()
-	end)
-
-elseif GetResourceState('qb-core') == 'started' then
+if GetResourceState('qb-core') == 'started' then
 	QBCore = exports['qb-core']:GetCoreObject()
 	PlayerData = QBCore.Functions.GetPlayerData()
-	if PlayerData.job ~= nil then
-		PlayerData.job.grade = PlayerData?.job?.grade?.level or 1
-	end
+
 	if lib.addRadialItem then
-		SetTimeout(100,function()
+		SetTimeout(100, function()
 			local access = HasAccess()
 			return access and HasRadialMenu()
 		end)
 	end
+
 	RegisterNetEvent('QBCore:Client:OnPlayerLoaded', function()
 		PlayerData = QBCore.Functions.GetPlayerData()
-		if PlayerData.job ~= nil then
-			PlayerData.job.grade = PlayerData?.job?.grade?.level or 1
-		end
+		PlayerData.job.grade = PlayerData.job.grade.level or 1
 		return HasRadialMenu()
 	end)
 
 	RegisterNetEvent('QBCore:Client:OnJobUpdate', function(job)
 		PlayerData.job = job
-		if PlayerData.job ~= nil then
-			PlayerData.job.grade = PlayerData?.job?.grade?.level or 1
-		end
+		PlayerData.job.grade = PlayerData.job.grade.level or 1
 		HasRadialMenu()
 	end)
-	imagepath = 'nui://qb-inventory/html/images/'
-else -- standalone ?
-	PlayerData = {job = 'mechanic', grade = 9}
+else
+	PlayerData = { job = 'mechanic', grade = 9 }
 	if lib.addRadialItem then
-		SetTimeout(100,function()
+		SetTimeout(100, function()
 			return HasRadialMenu()
 		end)
 	end
-	warn('you are not using any supported framework')
+	print('you are not using any supported framework')
+end
+
+if PlayerData.job then
+	PlayerData.job.grade = PlayerData.job.grade.level or 1
 end

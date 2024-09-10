@@ -1,5 +1,5 @@
 -- renzu_tuners
-config = {}
+local config = {}
 -- debug mode -- saves all vehicle including non owned vehicles
 config.debug = false -- enable commands for dev. /sethandling 100 (0-100), /setfuel 100 (0-100), /setmileage 1000 (0,10000) !! note this does not have permission checks
 config.sandboxmode = false -- different tuning and no degrations and other stuff. mostly used only when trying to tweak a vehicle handling meta in dyno.
@@ -53,7 +53,7 @@ config.engineswapper = {
 		[1] = vec4(-325.60,-139.27,39.00,74.43)
 	},
 	label = 'Engine Swap',
-	model = `prop_engine_hoist`,
+	model = "prop_engine_hoist",
 }
 
 config.enablemarkers = true -- markers points
@@ -67,7 +67,7 @@ config.repairpoints = { -- marker and drawtext type interactions
 }
 
 config.useMlo = false -- set to true if your using MLO and there will be no need to spawn Dynamometer prop
-config.dynoprop = `mist_dyno` -- replace with your dyno prop or leave default
+config.dynoprop = "mist_dyno" -- replace with your dyno prop or leave default
 config.dynopropShow = true -- set to false if your MLO has a DYNO area.. but setting up the coordinates for prop is still require to make the dyno logic work.
 config.dynocollision = true -- set to true if your using dynamometer prop
 config.routingbucket = 0 -- leave default if your not using custom routing buckets
@@ -479,7 +479,7 @@ config.radialoptions = {
 		label = 'Performance',
 		icon = 'chart-line',
 		onSelect = function()
-		  return CheckPerformance(true)
+		  return CheckPerformance()
 		end
 	},
 	{
@@ -487,7 +487,7 @@ config.radialoptions = {
 		label = 'See Tires',
 		icon = 'car',
 		onSelect = function()
-		  return CheckWheels(true)
+		  return CheckWheels()
 		end
 	},
 }
@@ -527,7 +527,7 @@ config.drift_handlings = {
 	{'fRollCentreHeightRear',0.150000},
 }
 
-function import(file)
+ function import(file)
 	local name = ('%s.lua'):format(file)
 	local content = LoadResourceFile(GetCurrentResourceName(),name)
 	local f, err = load(content)
@@ -544,7 +544,7 @@ config.customItems = {
 	[6] = {item = 'nitro200shot', cost = 25000},
 }
 
-itemsData = {}
+local itemsData = {}
 for k,v in pairs(config.engineparts) do
 	table.insert(itemsData,v)
 end

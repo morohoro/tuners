@@ -26,10 +26,12 @@ ItemFunction = function(vehicle,data,menu) -- item use handler
 		})
 	end
 	SetEntityControlable(vehicle)
-	local item = data.name
-	if config.metadata then
-		item = data.metadata?.upgrade or data.name
-	end
+local item = data.name
+if config.metadata then
+    if data.metadata and data.metadata.upgrade then
+        item = data.metadata.upgrade
+    end
+end
 	local ent = Entity(vehicle).state
 	local state, upgrade = GetItemState(item)
 	local tires = GetTires(item)

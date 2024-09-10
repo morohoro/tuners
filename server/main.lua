@@ -1,3 +1,8 @@
+local QBCore = exports['qb-core']:GetCoreObject()
+
+sql = require('sql')
+local db = sql()
+
 local defaulthandling = {}
 local controller = {}
 local vehicleupgrades = {}
@@ -10,33 +15,12 @@ local currentengine = {}
 local nodegrade = {}
 local dyno_net = {}
 local ramp = {}
-local db = sql()
 
 while not QBCore do
     Citizen.Wait(0)
 end
 
-function setupNUIHandlers()
-    -- Add NUI message handlers
-    local function addEventHandler(eventName, handler)
-        local success, error = pcall(AddEventHandler, eventName, handler)
-        if not success then
-            print("Error adding event handler for " .. eventName .. ": " .. error)
-        end
-    end
 
-    addEventHandler('DynoTest:StartDynoTest', function()
-        -- Handle start dyno test event
-    end)
-
-    addEventHandler('DynoTest:StopDynoTest', function()
-        -- Handle stop dyno test event
-    end)
-
-    addEventHandler('DynoTest:GetDynoResults', function()
-        -- Handle get dyno results event
-    end)
-end
 
 local function registerEvents()
     -- Register server-side event handlers
@@ -80,6 +64,28 @@ AddEventHandler('onResourceStart', function(resourceName)
         registerEvents()
     end
 end)
+
+function setupNUIHandlers()
+    -- Add NUI message handlers
+    local function addEventHandler(eventName, handler)
+        local success, error = pcall(AddEventHandler, eventName, handler)
+        if not success then
+            print("Error adding event handler for " .. eventName .. ": " .. error)
+        end
+    end
+
+    addEventHandler('DynoTest:StartDynoTest', function()
+        -- Handle start dyno test event
+    end)
+
+    addEventHandler('DynoTest:StopDynoTest', function()
+        -- Handle stop dyno test event
+    end)
+
+    addEventHandler('DynoTest:GetDynoResults', function()
+        -- Handle get dyno results event
+    end)
+end
 
 registerEvents()
 
@@ -468,32 +474,45 @@ lib.callback.register('renzu_tuners:Craft', function(src, slots, requiredata, it
     local success = false
     local reward = item.name
     local hasitems = true
+
+    -- Get the crafting recipe data from the Config.CraftingRecipes table
+    local recipe = Config.CraftingRecipes[item.name]
+    if not recipe then
+        print("Error: crafting recipe not found for item " .. item.name)
+        return false
+    end
+
+    -- Check if the player has all the required items
     for slot, data in pairs(slots) do
         hasitems = xPlayer.Functions.RemoveItem(data.name, requiredata[data.name], data.metadata)
         if not hasitems then break end
     end
+
     if hasitems then
-        if chance and math.random(1, 100) <= chance or not chance then
+        -- Check if the crafting has a chance to succeed
+        local chance = recipe.chance or 100
+        if math.random(1, 100) <= chance then
             success = true
             local metadata = nil
+
+            -- Determine the reward and metadata based on the item type
             if engine then
                 metadata = { label = engine.label, description = engine.label .. ' Engine Swap', engine = engine.name, image = 'engine' }
                 reward = 'enginegago'
-            end
-            if config.metadata then
-                if item.type == 'upgrade' and item.name ~= 'repairparts' then
-                    reward = item.state
-                    metadata = { upgrade = item.name, label = item.label, description = item.label .. ' Engine Parts', image = item.name }
-                end
-                if item.name == 'repairparts' then
-                    metadata = { durability = item.durability, upgrade = item.name, label = item.label, description = item.label .. ' \n  Restore Parts Durability ', image = item.name }
-                end
+            elseif item.type == 'upgrade' and item.name ~= 'repairparts' then
+                reward = item.state
+                metadata = { upgrade = item.name, label = item.label, description = item.label .. ' Engine Parts', image = item.name }
             elseif item.name == 'repairparts' then
-                metadata = { durability = 100, upgrade = item.name, label = 'Repair Engine Parts Kit', description = ' Restore Parts Durability to 100%', image = item.name }
+                metadata = { durability = item.durability, upgrade = item.name, label = item.label, description = item.label .. ' \n  Restore Parts Durability ', image = item.name }
+            else
+                metadata = { label = item.label, description = item.label, image = item.name }
             end
+
+            -- Give the reward to the player
             xPlayer.Functions.AddItem(reward, 1, metadata)
         end
     end
+
     return success
 end)
 
