@@ -22,13 +22,11 @@ function GetVehicleServerStates(plate, cb)
 end
 
 -- Ensure `lib.callback` is not nil before using it
-if lib.callback then
-    lib.callback.register('renzu_tuners:CheckDyno', function(source, dynamometer, index)
+    QBCore.Functions.CreateCallback('renzu_tuners:CheckDyno', function(source, cb, dynamometer, index)
         -- Your code here
     end)
-else
+
     print('lib.callback is nil')
-end
 
 -- Define the saveall function
 function db.saveall(data)
@@ -147,34 +145,32 @@ end
 		)
 
 		local function createRamp(v)
-			 local rampmodel = config.dynoprop
-			 if v and v.platform then
-				 -- Check if the model is valid and loaded
-				 if not IsModelInCdimage(rampmodel) or not IsModelValid(rampmodel) then
-					 print("Invalid model: " .. tostring(rampmodel))
-					 return
-				 end
-		 
-				 RequestModel(rampmodel)
-				 while not HasModelLoaded(rampmodel) do
-					 Wait(10) -- Wait until the model is loaded
-				 end
-		 
-				 -- Create the object
-				 local object = QBCore.Functions.CreateObject(rampmodel, v.platform.x, v.platform.y, v.platform.z - 1.2, true, true)
-		 
-				 -- Check if the object was created successfully
-				 if DoesEntityExist(object) then
-					 SetEntityHeading(object, v.platform.heading or 0)
-				 else
-					 print("Error: Failed to create object")
-				 end
-			 else
-				 print("Error: 'v' or 'v.platform' is not defined")
-			 end
-		 end
+			local rampmodel = config.dynoprop
+			if v and v.platform then
+				-- Check if the model is valid and loaded
+				if not IsModelValid(rampmodel) then
+					print("Invalid model: " .. tostring(rampmodel))
+					return
+				end
 		
+				RequestModel(rampmodel)
+				while not HasModelLoaded(rampmodel) do
+					Wait(10) -- Wait until the model is loaded
+				end
 		
+				-- Create the object
+				local object = CreateObject(GetHashKey(rampmodel), v.platform.x, v.platform.y, v.platform.z - 1.2, true, true)
+		
+				-- Check if the object was created successfully
+				if DoesEntityExist(object) then
+					SetEntityHeading(object, v.platform.heading or 0)
+				else
+					print("Error: Failed to create object")
+				end
+			else
+				print("Error: 'v' or 'v.platform' is not defined")
+			end
+		end
 		
 		local v = {
 			platform = {
@@ -183,35 +179,47 @@ end
 				z = 30.0
 			}
 		}
-		local object = QBCore.Functions.CreateProp(rampmodel, v.platform.x, v.platform.y, v.platform.z - 1.2, 0.0)
-if not object then
-    print("Error creating ramp")
-    return
-end
+		
+		local rampmodel = config.dynoprop
+		if not IsModelValid(rampmodel) then
+			print("Invalid model: " .. tostring(rampmodel))
+			return
+		end
 		
 		createRamp(v)
-		while not DoesEntityExist(object) do Wait(1) end
+		
+		RequestModel(rampmodel)
+		while not HasModelLoaded(rampmodel) do
+			Wait(10) -- Wait until the model is loaded
+		end
+		
+		local object = CreateObject(GetHashKey(rampmodel), v.platform.x, v.platform.y, v.platform.z - 1.2, true, true)
+		if not object then
+			print("Error creating ramp")
+			return
+		end
+		
+		createRamp(v)
+		while not DoesEntityExist(object) do
+			Wait(1)
+		end
+		
 		SetEntityRoutingBucket(object, config.routingbucket)
 		Wait(100)
 		FreezeEntityPosition(object, true)
-		SetEntityHeading(object, v.platform.w)
-		local k = 1 -- Assign a value to k
+		SetEntityHeading(object, v.platform.heading or 0)
+		local k = 1
 		dyno_net[k] = NetworkGetNetworkIdFromEntity(object)
-		local ramp = {}   -- Declare and initialize the ramp table
+		local ramp = {} -- Declare and initialize the ramp table
 		ramp[k] = object
 		Wait(100)
-		Entity(object).state:set('ramp', {ts = os.time(), heading = v.platform.w}, true)
+		Entity(object).state:set('ramp', {ts = os.time(), heading = v.platform.heading or 0}, true)
     
 
-	print('Checking if lib.callback exists...')
-	if lib and lib.callback then
-		print('lib.callback exists. Registering callback...')
-		lib.callback.register('renzu_tuners:CheckDyno', function(source, dynamometer, index)
-			-- Your callback logic here
-		end)
-	else
-		print('lib or lib.callback is nil')
-	end
+	print('Registering callback...')
+	QBCore.Functions.CreateCallback('renzu_tuners:CheckDyno', function(source, cb, dynamometer, index)
+		-- Your callback logic here
+	end)
 	print('Callback registration check complete.')
 			
 	local source = ... -- assuming source is defined somewhere above
@@ -250,7 +258,7 @@ end)
 CreateThread(SpawnDyno)
 if config.sandboxmode then return end
 -- send specific vehicle data to client. normaly i do check globalstate data in client. but somehow its acting weird on live enviroments and data is not getting sync if server has been up for too long, this is only a work around in state bag issue when data is large.
-lib.callback.register('renzu_tuners:vehiclestats', function(src, plate) -- only the efficient way to send data to client. normaly people will just fetch sql every time player goes into vehicle. which is not performant.
+QBCore.Functions.CreateCallback('renzu_tuners:vehiclestats', function(src, plate) -- only the efficient way to send data to client. normaly people will just fetch sql every time player goes into vehicle. which is not performant.
 	local stats = {[plate] = vehiclestats[plate] or {}}
 	local tires = {[plate] = vehicletires[plate] or {}}
 	local mileage = {[plate] = mileages[plate] or 0}
@@ -409,7 +417,7 @@ end)
 			end
 		end)
 
-	lib.callback.register('renzu_tuners:Tune', function(src, data)
+	QBCore.Functions.CreateCallback('renzu_tuners:Tune', function(src, data)
 		local entity = NetworkGetEntityFromNetworkId(data.vehicle)
 		local plate = string.gsub(GetVehicleNumberPlateText(entity), '^%s*(.-)%s*$', '%1'):upper()
 		local QBCore = exports['qb-core']:GetCoreObject()
@@ -464,7 +472,7 @@ if not isPlateOwned(plate) and not config.debug then return end
 		return cost
 	end
 
-	lib.callback.register('renzu_tuners:checkitem', function(source, item, isShop, required)
+	QBCore.Functions.CreateCallback('renzu_tuners:checkitem', function(source, item, isShop, required)
 		local hasItem = false
 		local amount = 1
 		local xPlayer = QBCore.Functions.GetPlayer(source)
@@ -510,7 +518,7 @@ if not isPlateOwned(plate) and not config.debug then return end
 		return hasItem
 	end)
 
-	lib.callback.register('renzu_tuners:OldEngine', function(source, name, engine, plate, net)
+	QBCore.Functions.CreateCallback('renzu_tuners:OldEngine', function(source, name, engine, plate, net)
 		local metadata = {}
 		local vehicle = NetworkGetEntityFromNetworkId(net)
 		local xPlayer = QBCore.Functions.GetPlayer(source)
@@ -545,7 +553,7 @@ if not isPlateOwned(plate) and not config.debug then return end
 		end
 	end)
 
-	lib.callback.register('renzu_tuners:GetEngineStorage', function(source, stash)
+	QBCore.Functions.CreateCallback('renzu_tuners:GetEngineStorage', function(source, stash)
 		local xPlayer = QBCore.Functions.GetPlayer(source)
 		
 		if xPlayer then
@@ -556,14 +564,14 @@ if not isPlateOwned(plate) and not config.debug then return end
 		end
 	end)
 	
-	lib.callback.register('renzu_tuners:RemoveEngineStorage', function(source, data)
+	QBCore.Functions.CreateCallback('renzu_tuners:RemoveEngineStorage', function(source, data)
 		local xPlayer = QBCore.Functions.GetPlayer(source)
 		if xPlayer then
 			xPlayer.Functions.RemoveItem(data.name, 1, data.metadata, data.slot, data.stash)
 		end
 	end)
 
-	lib.callback.register('renzu_tuners:Craft', function(source, slots, requiredata, item, engine)
+	QBCore.Functions.CreateCallback('renzu_tuners:Craft', function(source, slots, requiredata, item, engine)
 		local xPlayer = QBCore.Functions.GetPlayer(source)
 		if xPlayer then
 			local success = true
@@ -600,7 +608,7 @@ if not isPlateOwned(plate) and not config.debug then return end
 		end
 	end)
 
-	lib.callback.register('renzu_tuners:RepairPart', function(source, percent, noMetadata)
+	QBCore.Functions.CreateCallback('renzu_tuners:RepairPart', function(source, percent, noMetadata)
 		local xPlayer = QBCore.Functions.GetPlayer(source)
 		if xPlayer then
 			local items = xPlayer.Functions.GetInventoryItems('slots', 'repairparts')
@@ -755,16 +763,13 @@ lib.event = lib.addEventHandler
 -- Define the addStateBagChangeHandler alias
 lib.stateBagChange = lib.addStateBagChangeHandler
 
--- Define the addCallback alias
-lib.callback = lib.addCallback
 
 -- Rest of the server main.lua code goes here...
 
 -- Import required libraries
 local QBCore = exports['qb-core']
 
--- Define the lib table
-local lib = {}
+
 
 -- Define the addCommand function
 function lib.addCommand(name, data, callback)
@@ -777,9 +782,6 @@ function lib.addCommand(name, data, callback)
     }
 end
 
--- Rest of the server main.lua code goes here...
-
--- Add the sandboxmode command
 lib.addCommand('sandboxmode', {
     help = 'Enable Developer mode Tuning and Disable Engine Degration',
     params = {},
