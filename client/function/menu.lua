@@ -1,3 +1,5 @@
+local QBCore = exports['qb-core']:GetCoreObject()
+local config = QBCore.Config
 UpgradePackage = function(data,shop,job)
 	local options = {}
 	local vehicle = GetClosestVehicle(GetEntityCoords(cache.ped), 10.0)
@@ -363,9 +365,18 @@ Options = function(data,shop,job)
 	end
 end
 
-local upgrades_data = {}
-for k,v in pairs(config.engineupgrades) do
-	upgrades_data[v.item] = v
+if GetConfig then
+    local config = GetConfig()
+    if config and config.engineupgrades then
+        local upgrades_data = {}
+        for k, v in pairs(config.engineupgrades) do
+            upgrades_data[v.item] = v
+        end
+    else
+        print("Error: config.engineupgrades is nil")
+    end
+else
+    print("Error: GetConfig is not available")
 end
 
 CheckVehicle = function(menu,shop)
@@ -763,34 +774,61 @@ CraftOption = function(items,craft,label)
 			table.insert(requires,material)
 			requiredata[material] = amount
 		end
-		local chance = item.chance or 100
-		table.insert(materials,'Chances: '..chance..'%')
-		table.insert(options,{
-		  title = item.label,
-		  metadata = materials,
-		  icon = craft == 'engine' and imagepath..'engine.png' or imagepath..''..item.name..'.png',
-		  description = 'Craft '..item.name,
-		  arrow = true,
-		  onSelect = function()
-			    
-		  end
-		})
-				local items = GetInventoryItems(requires)
-				local hasitems = true
-				local missingitems = ''
-				local itemmulti = {}
-				local slots = {}
-			
-			
-				for _, data in pairs(items) do
-					for _, v in pairs(data) do
-						itemmulti[v.name] = (itemmulti[v.name] or 0) + (isUpgradeEligible(v) and v.count or 0)
-						if (config.metadata and v.metadata and v.metadata.upgrade == metadata[v.name]) or 
-						   (not config.metadata and not metadata[v.name]) then
-							slots[v.name] = v
-						end
-					end
+		if item then
+			local chance = item.chance or 100
+			table.insert(materials,'Chances: '..chance..'%')
+			table.insert(options,{
+			  title = item.label,
+			  metadata = materials,
+			  icon = craft == 'engine' and imagepath..'engine.png' or imagepath..''..item.name..'.png',
+			  description = 'Craft '..item.name,
+			  arrow = true,
+			  onSelect = function()
+				
+			  end
+			})
+		end
+		local requires = {
+			bottle = 1,
+			methane = 10,
+			steel = 10,
+			water = 1
+		}
+		
+		local items = GetInventoryItems(requires)
+		if not items then
+			print("Error: GetInventoryItems returned nil")
+			print("Requires parameter:", requires)
+			return
+		end
+		
+		local hasitems = true
+		local missingitems = ''
+		local itemmulti = {}
+		local slots = {}
+		
+		for _, data in pairs(items) do
+			if type(data) ~= 'table' then
+				-- handle the case where data is not a table
+				print("Error: invalid data type in GetInventoryItems response")
+				return
+			end
+		
+			for _, v in pairs(data) do
+				if type(v) ~= 'table' or not v.name then
+					-- handle the case where v is not a table or missing name property
+					print("Error: invalid data type in GetInventoryItems response")
+					return
 				end
+		
+				itemmulti[v.name] = (itemmulti[v.name] or 0) + (isUpgradeEligible(v) and v.count or 0)
+		
+				if (config.metadata and v.metadata and v.metadata.upgrade == metadata[v.name]) or
+				   (not config.metadata and not metadata[v.name]) then
+					slots[v.name] = v
+				end
+			end
+		end
 			
 			
 			-- helper function
