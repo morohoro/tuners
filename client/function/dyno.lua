@@ -1,31 +1,37 @@
-Dyno = function(data,index)
-	local dynoprop = not config.useMlo and DoesEntityExist(ramp) and GetEntityModel(ramp) == config.dynoprop or config.useMlo
-	local vehicle = GetClosestVehicle(vec3(data.platform.x,data.platform.y,data.platform.z), 2.0)
-	local candyno = lib.callback.await('renzu_tuners:CheckDyno',false,dynoprop,index)
-	local dynotaken = DoesEntityExist(vehicle)
-	local dynostate = dynotaken and Entity(vehicle).state?.dyno
-	local dynodriver = GetPedInVehicleSeat(GetVehiclePedIsIn(cache.ped),-1) == cache.ped
-	if candyno and not dynotaken then
-		indyno = true
-		lib.notify({
-			title = 'Dynamometer Mode',
-			type = 'success'
-		})
-		lib.showTextUI('[ARROW UP] - Gear Up  \n [ARROW DOWN] - Gear Down  \n [G] Stop Dyno',{icon = 'gamepad', position = "top-center"})
+Dyno = function(data, index)
+  local dynoprop = not config.useMlo and DoesEntityExist(ramp) and GetEntityModel(ramp) == config.dynoprop or config.useMlo
+  local vehicle = GetClosestVehicle(vec3(data.platform.x, data.platform.y, data.platform.z), 2.0)
 
-		if manual then manual = false Wait(2000) end
-		local vehicle = GetVehiclePedIsIn(cache.ped)
-		local coord = GetEntityCoords(vehicle) + vec3(0.0,0.0,0.2)
-		zoffset = {coord = data.platform, offsets = data.offsets}
-		DisableVehicleWorldCollision(vehicle)
-		FreezeEntityPosition(vehicle,true)
-		SetVehicleManualGears(vehicle,true)
-	elseif not dynotaken and not dynodriver then
-		lib.notify({
-			title = 'Dynamometer is being used',
-			type = 'error'
-		})
-	end
+  QBCore.Functions.TriggerCallback('renzu_tuners:CheckDyno', function(candyno)
+    local dynotaken = DoesEntityExist(vehicle)
+    local dynostate = dynotaken and Entity(vehicle).state?.dyno
+    local dynodriver = GetPedInVehicleSeat(GetVehiclePedIsIn(cache.ped), -1) == cache.ped
+
+    if candyno and not dynotaken then -- Only proceed if candyno is true
+      indyno = true
+      lib.notify({
+        title = 'Dynamometer Mode',
+        type = 'success'
+      })
+      lib.showTextUI('[ARROW UP] - Gear Up  \n [ARROW DOWN] - Gear Down  \n [G] Stop Dyno', {icon = 'gamepad', position = "top-center"})
+
+      if manual then 
+        manual = false 
+        Wait(2000) 
+      end
+      local vehicle = GetVehiclePedIsIn(cache.ped)
+      local coord = GetEntityCoords(vehicle) + vec3(0.0, 0.0, 0.2)
+      zoffset = {coord = data.platform, offsets = data.offsets}
+      DisableVehicleWorldCollision(vehicle)
+      FreezeEntityPosition(vehicle, true)
+      SetVehicleManualGears(vehicle, true)
+    elseif not dynotaken and not dynodriver then
+      lib.notify({
+        title = 'Dynamometer is being used',
+        type = 'error'
+      })
+    end
+  end, false, dynoprop, index)
 end
 
 ForceVehicleSingleGear = function(vehicle,gearmaxspeed,dyno)
