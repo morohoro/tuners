@@ -44,12 +44,12 @@ end
 
 QBCore.Functions.CreateCallback('renzu_tuners:CheckDyno', function(source, cb, dynamometer, index)
     local dyno = not config.useMlo and NetworkGetEntityFromNetworkId(dyno_net[index])
-    if not config.useMlo and not DoesEntityExist(dyno) or not config.useMlo and not dynamometer then
-        SpawnDyno(index)
-        cb(true)
-    else
-        cb(true)
-    end
+    if not config.useMlo and (not DoesEntityExist(dyno) or not dynamometer) then
+    SpawnDyno(index)
+    cb(true)
+else
+    cb(true)
+end
 end)
 
 AddEventHandler('onResourceStop', function(res)
