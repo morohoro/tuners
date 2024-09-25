@@ -1,4 +1,3 @@
-
 lib.onCache('vehicle', function(value)
 	if config.sandboxmode then
 		Sandbox(value)
@@ -86,7 +85,7 @@ OnVehicle = function(value)
 					nitrodeduct = turbopower -- fix degration for now when using NOS
 				end
 				local chance_degrade = math.random(1,100) < (chance * ( 2.0 - efficiency))
-				synctimer += 1
+				synctimer = synctimer + 1
 				local resettimer = false
 				for _,v2 in pairs(config.engineparts) do
 					local stock = not upgraded[v2.item]	
@@ -135,7 +134,7 @@ OnVehicle = function(value)
 				local ent = Entity(value).state
 				local plate = string.gsub(GetVehicleNumberPlateText(value), '^%s*(.-)%s*$', '%1'):upper()
 				if ent.mileage then
-					updatestate += 1
+					updatestate = updatestate + 1
 					ent:set('mileage', ent.mileage+1, updatestate > 10)
 					if updatestate > 10 then updatestate = 0 end
 				elseif mileages[plate] then
