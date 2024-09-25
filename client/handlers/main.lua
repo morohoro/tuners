@@ -62,7 +62,7 @@ AddStateBagChangeHandler('startdyno' --[[key filter]], nil --[[bag filter]], fun
 	if DoesEntityExist(entity) and value.dyno and not dynovehicle[net] then
 		dynovehicle[net] = value.dyno
 		SetVehicleOnGroundProperly(dynoentity)
-		FreezeEntityPosition(veh,false)
+		FreezeEntityPosition(vehicle,false)
 		Wait(50)
 		SetVehicleGravity(entity,false)
 		SetEntityCoordsNoOffset(dynoentity,vec3(value.platform.coord.x,value.platform.coord.y,value.platform.coord.z)-vec3(0.0,0.0,0.9))
